@@ -1,13 +1,13 @@
 {
-  "name": "fx",
+  "name": "cy",
   "version": "0.1.0",
   "description": "Personal CLI toolkit for freelancers",
   "bin": {
-    "fx": "./dist/index.js"
+    "cy": "./dist/index.js"
   },
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
+    "dev": "tsx src/index.tsx",
     "build": "tsup src/index.ts --format esm --dts",
     "start": "node dist/index.js"
   },
