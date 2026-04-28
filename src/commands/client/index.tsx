@@ -1,25 +1,32 @@
 import React from 'react';
-import { render, Box, Text } from 'ink';
+import { render } from 'ink';
 import { Command } from 'commander';
-import { listClients, createClient, deleteClient } from '../../store/client.js';
-import { listProjects, createProject } from '../../store/project.js';
-import { Table, Header } from '../../ui/index.js';
-// @ts-ignore JSX
-import { colorizeStatus, formatMoney } from '../../ui/utils.js';
-
-const STATUS_OPTIONS = ['requirement', 'development', 'review', 'delivered'];
+import { Box, Text } from 'ink';
+import { listClients, createClient, deleteClient, updateClient } from '../../store/client.js';
+import { listProjects, createProject, updateProjectStatus, updateProjectPayment } from '../../store/project.js';
+import { Table, Header, Select, Input, colorizeStatus, formatMoney } from '../../ui/index.js';
+import { useState } from 'react';
+import { useInput, useApp } from 'ink';
 
 export function registerClientCommand(program: Command) {
-  const cmd = program.command('client').description('🏢 客户管理');
+  const cmd = program.command('client').alias('c').description('🏢 客户管理');
 
-  cmd.command('list').description('列出所有客户').action(() => {
+  cmd.command('list').alias('ls').description('列出所有客户').action(() => {
     const clients = listClients() as any[];
     render(
       <Box flexDirection="column">
         <Header title="客户列表" />
-        <Table title="" items={clients.map(c => [
-          c.name, c.company || '-', c.contact || '-', c.email || '-', c.id.slice(0, 6)
-        ])} widths={[16, 14, 12, 20, 8]} />
+        <Table
+          title=""
+          columns={[
+            { key: 'name', label: '名称', width: 16 },
+            { key: 'company', label: '公司', width: 16 },
+            { key: 'contact', label: '联系人', width: 10 },
+            { key: 'email', label: '邮箱', width: 22 },
+            { key: '_id', label: 'ID', width: 8 },
+          ]}
+          rows={clients.map(c => ({ ...c, _id: c.id.slice(0, 6) }))}
+        />
       </Box>
     );
   });
@@ -29,30 +36,60 @@ export function registerClientCommand(program: Command) {
     .option('-c, --company <company>', '公司名称')
     .option('-t, --contact <contact>', '联系人')
     .option('-e, --email <email>', '邮箱')
+    .option('-n, --notes <notes>', '备注')
     .action((name, opts) => {
       const client = createClient({ name, ...opts });
       console.log(`✅ 客户已添加: ${client.name} (${client.id.slice(0, 6)})`);
     });
 
-  cmd.command('rm <id>')
-    .description('删除客户')
-    .action((id) => {
-      deleteClient(id);
-      console.log(`🗑️ 客户已删除`);
+  cmd.command('edit <id>')
+    .description('编辑客户')
+    .option('-c, --company <company>')
+    .option('-t, --contact <contact>')
+    .option('-e, --email <email>')
+    .option('-n, --notes <notes>')
+    .action((id, opts) => {
+      const data: Record<string, string> = {};
+      if (opts.company !== undefined) data.company = opts.company;
+      if (opts.contact !== undefined) data.contact = opts.contact;
+      if (opts.email !== undefined) data.email = opts.email;
+      if (opts.notes !== undefined) data.notes = opts.notes;
+      if (Object.keys(data).length === 0) {
+        console.log('❌ 请至少指定一个要修改的字段');
+        return;
+      }
+      updateClient(id, data);
+      console.log(`✅ 客户信息已更新`);
     });
+
+  cmd.command('rm <id>').description('删除客户').action((id) => {
+    deleteClient(id);
+    console.log(`🗑️ 客户已删除`);
+  });
 }
 
 export function registerProjectCommand(program: Command) {
-  const cmd = program.command('project').description('📦 项目管理');
+  const cmd = program.command('project').alias('p').description('📦 项目管理');
 
-  cmd.command('list').description('列出所有项目').action(() => {
+  cmd.command('list').alias('ls').description('列出所有项目').action(() => {
     const projects = listProjects() as any[];
     render(
       <Box flexDirection="column">
         <Header title="项目列表" />
-        <Table title="" items={projects.map(p => [
-          p.name, p.client_name || '-', formatMoney(p.budget), formatMoney(p.received), p.status
-        ])} widths={[20, 12, 10, 10, 10]} />
+        <Table
+          columns={[
+            { key: 'name', label: '项目名', width: 20 },
+            { key: 'client_name', label: '客户', width: 14 },
+            { key: '_budget', label: '预算', width: 12 },
+            { key: '_received', label: '已收', width: 12 },
+            { key: 'status', label: '状态', width: 10 },
+          ]}
+          rows={projects.map(p => ({
+            ...p,
+            _budget: formatMoney(p.budget),
+            _received: formatMoney(p.received),
+          }))}
+        />
       </Box>
     );
   });
@@ -69,8 +106,9 @@ export function registerProjectCommand(program: Command) {
   cmd.command('status <id> <status>')
     .description('更新项目状态')
     .action((id, status) => {
-      if (!STATUS_OPTIONS.includes(status)) {
-        console.log(`❌ 无效状态，可选: ${STATUS_OPTIONS.join(', ')}`);
+      const valid = ['requirement', 'development', 'review', 'delivered'];
+      if (!valid.includes(status)) {
+        console.log(`❌ 无效状态，可选: ${valid.join(', ')}`);
         return;
       }
       updateProjectStatus(id, status);
@@ -83,14 +121,4 @@ export function registerProjectCommand(program: Command) {
       updateProjectPayment(id, Number(amount));
       console.log(`💰 已记录收款: ¥${amount}`);
     });
-}
-
-function updateProjectStatus(id: string, status: string) {
-  const { getDb } = require('../../store/db.js');
-  getDb().prepare('UPDATE project SET status = ?, updated_at = datetime(\'now\') WHERE id = ?').run(status, id);
-}
-
-function updateProjectPayment(id: string, amount: number) {
-  const { getDb } = require('../../store/db.js');
-  getDb().prepare('UPDATE project SET received = received + ?, updated_at = datetime(\'now\') WHERE id = ?').run(amount, id);
 }

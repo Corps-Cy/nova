@@ -3,49 +3,65 @@ import { render } from 'ink';
 import { Command } from 'commander';
 import { listTasks, createTask, updateTaskStatus, updateTaskTime, deleteTask, getTaskStats } from '../../store/task.js';
 import { Box, Text } from 'ink';
-import { Header } from '../../ui/index.js';
+import { Header, Select } from '../../ui/index.js';
 import { colorizeStatus } from '../../ui/utils.js';
 
 const STATUS_OPTIONS = ['todo', 'doing', 'done'];
 
 export function registerTaskCommand(program: Command) {
-  const cmd = program.command('task').description('📋 任务管理');
+  const cmd = program.command('task').alias('t').description('📋 任务管理');
 
-  cmd.command('list')
+  cmd.command('list').alias('ls')
     .description('列出任务')
     .option('-s, --status <status>', '按状态筛选')
     .action((opts) => {
       const tasks = listTasks(opts.status ? { status: opts.status } : undefined) as any[];
       render(
         <Box flexDirection="column">
-          <Header title="任务看板" />
-          <TaskBoard tasks={tasks} />
+          <Header title="任务列表" />
+          {tasks.length === 0 ? (
+            <Text dimColor>  暂无任务</Text>
+          ) : tasks.map(t => (
+            <Box key={t.id} marginBottom={0}>
+              <Text width={2}>{'  '}</Text>
+              <Text width={30} wrap="truncate-end">{t.title}</Text>
+              <Text width={8}> </Text>
+              {colorizeStatus(t.status)}
+              {t.priority !== 'medium' && (
+                <Text> <Text color={t.priority === 'high' ? 'red' : 'gray'}>[{t.priority}]</Text></Text>
+              )}
+              {t.time_spent > 0 && <Text dimColor> {t.time_spent}h</Text>}
+            </Box>
+          ))}
         </Box>
       );
     });
 
-  cmd.command('board').description('看板视图').action(() => {
+  cmd.command('board').alias('b').description('看板视图').action(() => {
     const all = listTasks() as any[];
-    const todo = all.filter(t => t.status === 'todo');
-    const doing = all.filter(t => t.status === 'doing');
-    const done = all.filter(t => t.status === 'done');
+    const groups = [
+      { label: '📋 待办', items: all.filter(t => t.status === 'todo'), color: 'gray' },
+      { label: '🔄 进行中', items: all.filter(t => t.status === 'doing'), color: 'yellow' },
+      { label: '✅ 已完成', items: all.filter(t => t.status === 'done'), color: 'green' },
+    ];
 
     render(
       <Box flexDirection="column">
-        <Header title="📋 任务看板" />
+        <Header title="任务看板" />
         <Box>
-          <Box flexDirection="column" marginRight={2}>
-            <Text bold color="gray">📋 待办 ({todo.length})</Text>
-            {todo.map(t => <TaskItem key={t.id} task={t} />)}
-          </Box>
-          <Box flexDirection="column" marginRight={2}>
-            <Text bold color="yellow">🔄 进行中 ({doing.length})</Text>
-            {doing.map(t => <TaskItem key={t.id} task={t} />)}
-          </Box>
-          <Box flexDirection="column">
-            <Text bold color="green">✅ 已完成 ({done.length})</Text>
-            {done.map(t => <TaskItem key={t.id} task={t} />)}
-          </Box>
+          {groups.map(g => (
+            <Box key={g.label} flexDirection="column" marginRight={2} width={32}>
+              <Text bold color={g.color}>{g.label} ({g.items.length})</Text>
+              <Text>──────────────────────────</Text>
+              {g.items.length === 0 && <Text dimColor>  (空)</Text>}
+              {g.items.map(t => (
+                <Box key={t.id} flexDirection="column" marginBottom={1}>
+                  <Text>{t.title}</Text>
+                  {t.time_spent > 0 && <Text dimColor>  ⏱ {t.time_spent}h</Text>}
+                </Box>
+              ))}
+            </Box>
+          ))}
         </Box>
       </Box>
     );
@@ -80,39 +96,19 @@ export function registerTaskCommand(program: Command) {
       console.log(`⏱️ 已记录 ${hours} 小时`);
     });
 
-  cmd.command('rm <id>')
-    .description('删除任务')
-    .action((id) => {
-      deleteTask(id);
-      console.log(`🗑️ 任务已删除`);
-    });
+  cmd.command('rm <id>').description('删除任务').action((id) => {
+    deleteTask(id);
+    console.log(`🗑️ 任务已删除`);
+  });
 
   cmd.command('stats').description('任务统计').action(() => {
     const stats = getTaskStats() as any[];
+    const total = stats.reduce((s, r) => s + r.count, 0);
     console.log('\n📊 任务统计:');
     stats.forEach(s => {
-      console.log(`  ${colorizeStatus(s.status).props.children}: ${s.count} 个`);
+      const bar = '█'.repeat(s.count) + '░'.repeat(Math.max(0, (total || 1) - s.count));
+      console.log(`  ${s.status.padEnd(10)} ${bar} ${s.count}`);
     });
-    console.log('');
+    console.log(`  ${'总计'.padEnd(10)} ${'█'.repeat(total)} ${total}\n`);
   });
-}
-
-function TaskBoard({ tasks }: { tasks: any[] }) {
-  if (tasks.length === 0) return <Text dimColor>  暂无任务</Text>;
-  return (
-    <Box flexDirection="column">
-      {tasks.map(t => <TaskItem key={t.id} task={t} />)}
-    </Box>
-  );
-}
-
-function TaskItem({ task }: { task: any }) {
-  return (
-    <Box>
-      <Text>{task.title}</Text>
-      <Text> </Text>
-      {colorizeStatus(task.status)}
-      {task.time_spent > 0 && <Text dimColor> [{task.time_spent}h]</Text>}
-    </Box>
-  );
 }

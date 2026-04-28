@@ -1,9 +1,9 @@
 {
-  "name": "mycli",
+  "name": "fx",
   "version": "0.1.0",
   "description": "Personal CLI toolkit for freelancers",
   "bin": {
-    "mycli": "./dist/index.js"
+    "fx": "./dist/index.js"
   },
   "type": "module",
   "scripts": {
