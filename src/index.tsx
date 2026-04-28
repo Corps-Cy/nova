@@ -8,8 +8,8 @@ import { registerAllCommands } from './commands/index.js';
 const program = new Command();
 
 program
-  .name('cy')
-  .description('◆ cy — freelancer toolkit')
+  .name('nova')
+  .description('◆ nova — freelancer toolkit')
   .version(VERSION)
   .action(() => {
     render(<Logo />);

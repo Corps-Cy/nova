@@ -1,9 +1,9 @@
 {
-  "name": "cy",
+  "name": "nova",
   "version": "0.1.0",
   "description": "Personal CLI toolkit for freelancers",
   "bin": {
-    "cy": "./dist/index.js"
+    "nova": "./dist/index.js"
   },
   "type": "module",
   "scripts": {

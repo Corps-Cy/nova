@@ -30,8 +30,8 @@
 ## 📦 安装
 
 ```bash
-git clone https://github.com/Corps-Cy/cy.git
-cd cy
+git clone https://github.com/Corps-Cy/nova.git
+cd nova
 npm install
 ```
 
@@ -48,48 +48,48 @@ npm run build
 npm start <command>
 ```
 
-运行 `cy` 不带参数显示渐变 Logo。
+运行 `nova` 不带参数显示渐变 Logo。
 
 ## 📖 命令速查
 
-### 客户管理 `cy client` / `cy c`
+### 客户管理 `nova client` / `nova c`
 
 | 命令 | 说明 |
 |------|------|
-| `cy c add <name>` | 添加客户（`-c` 公司 `-t` 联系人 `-e` 邮箱） |
-| `cy c list` / `cy c ls` | 客户列表 |
-| `cy c edit <id>` | 编辑客户信息 |
-| `cy c rm <id>` | 删除客户 |
+| `nova c add <name>` | 添加客户（`-c` 公司 `-t` 联系人 `-e` 邮箱） |
+| `nova c list` / `nova c ls` | 客户列表 |
+| `nova c edit <id>` | 编辑客户信息 |
+| `nova c rm <id>` | 删除客户 |
 
-### 项目管理 `cy project` / `cy p`
-
-| 命令 | 说明 |
-|------|------|
-| `cy p add <name> -C <clientId>` | 添加项目（`-b` 预算） |
-| `cy p list` | 项目列表 |
-| `cy p status <id> <status>` | 更新状态（requirement/development/review/delivered） |
-| `cy p pay <id> <amount>` | 记录收款 |
-
-### 任务管理 `cy task` / `cy t`
+### 项目管理 `nova project` / `nova p`
 
 | 命令 | 说明 |
 |------|------|
-| `cy t add <title>` | 添加任务（`-p` 优先级 `-P` 关联项目 `--due` 截止日期） |
-| `cy t list [-s status]` | 任务列表 |
-| `cy t board` / `cy t b` | 🎯 TUI 看板视图 |
-| `cy t status <id> <status>` | 更新状态（todo/doing/done） |
-| `cy t time <id> <hours>` | 记录工时 |
-| `cy t stats` | 任务统计 |
+| `nova p add <name> -C <clientId>` | 添加项目（`-b` 预算） |
+| `nova p list` | 项目列表 |
+| `nova p status <id> <status>` | 更新状态（requirement/development/review/delivered） |
+| `nova p pay <id> <amount>` | 记录收款 |
 
-### AI 工具链 `cy ai`
+### 任务管理 `nova task` / `nova t`
 
 | 命令 | 说明 |
 |------|------|
-| `cy ai prompt add <name>` | 添加 Prompt 模板（`-c` 分类 `--content` 或 `--file`） |
-| `cy ai prompt list` | 模板列表 |
-| `cy ai prompt show <id>` | 查看模板 |
-| `cy ai chat` | 💬 持续对话（`-m` 模型 `-s` 系统提示） |
-| `cy ai ask <message>` | 快速单次提问 |
+| `nova t add <title>` | 添加任务（`-p` 优先级 `-P` 关联项目 `--due` 截止日期） |
+| `nova t list [-s status]` | 任务列表 |
+| `nova t board` / `nova t b` | 🎯 TUI 看板视图 |
+| `nova t status <id> <status>` | 更新状态（todo/doing/done） |
+| `nova t time <id> <hours>` | 记录工时 |
+| `nova t stats` | 任务统计 |
+
+### AI 工具链 `nova ai`
+
+| 命令 | 说明 |
+|------|------|
+| `nova ai prompt add <name>` | 添加 Prompt 模板（`-c` 分类 `--content` 或 `--file`） |
+| `nova ai prompt list` | 模板列表 |
+| `nova ai prompt show <id>` | 查看模板 |
+| `nova ai chat` | 💬 持续对话（`-m` 模型 `-s` 系统提示） |
+| `nova ai ask <message>` | 快速单次提问 |
 
 ## ⚙️ 环境变量
 
@@ -102,7 +102,7 @@ export ANTHROPIC_API_KEY=sk-ant-...               # Claude 支持
 
 ## 🎨 主题
 
-cy 使用赛博朋克风格主题色系统，支持 24-bit 真彩色渐变：
+nova 使用赛博朋克风格主题色系统，支持 24-bit 真彩色渐变：
 
 | 角色 | 颜色 | 用途 |
 |------|------|------|
@@ -126,7 +126,7 @@ cy 使用赛博朋克风格主题色系统，支持 24-bit 真彩色渐变：
 ## 📂 项目结构
 
 ```
-cy/
+nova/
 ├── src/
 │   ├── index.tsx              # 入口
 │   ├── commands/

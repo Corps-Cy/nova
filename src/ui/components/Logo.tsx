@@ -7,7 +7,7 @@ import { VERSION } from '../theme.js';
  * 
  * 设计理念：赛博朋克风，字符级渐变
  * ◆ 图标：cyan → magenta 渐变
- * "cy"：cyan → blue → magenta 渐变
+ * "nova"：cyan → blue → magenta 渐变
  * "freelancer toolkit"：白色微渐变
  * 版本号：muted 灰色
  */
@@ -103,7 +103,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
         {/* Diamond icon with glow */}
         <GradientText text="◆" from={C1} to={C3} bold />
         <Text>{' '}</Text>
-        {/* "cy" gradient */}
+        {/* "nova" gradient */}
         <GradientText text="c" from={C1} to={C5} bold />
         <GradientText text="y" from={C5} to={C3} bold />
         <Text>{'  '}</Text>
