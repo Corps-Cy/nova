@@ -3,7 +3,7 @@ import { Box, Text } from 'ink';
 import { VERSION } from '../theme.js';
 
 /**
- * CY Logo — 彩色渐变版
+ * Nova Logo — 彩色渐变版
  * 
  * 设计理念：赛博朋克风，字符级渐变
  * ◆ 图标：cyan → magenta 渐变

@@ -1,7 +1,7 @@
 export const VERSION = '0.3.0';
 
 /**
- * CY Theme System
+ * Nova Theme System
  * 
  * 设计理念：深色终端 + 高对比度强调色
  * 主色调：青蓝 (#06b6d4) — 科技感、专业、冷静
