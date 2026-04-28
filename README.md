@@ -30,7 +30,7 @@
 ## 📦 安装
 
 ```bash
-git clone https://github.com/your-username/cy.git
+git clone https://github.com/Corps-Cy/cy.git
 cd cy
 npm install
 ```
