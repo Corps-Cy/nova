@@ -1,10 +1,10 @@
 import React from 'react';
 import { render } from 'ink';
 import { Command } from 'commander';
-import { listTasks, createTask, updateTaskStatus, updateTaskTime, deleteTask, getTaskStats } from '../../store/task.js';
+import { listTasks, createTask, updateTaskStatus, updateTaskTime, deleteTask, getTaskStats } from '../store/task.js';
 import { Box, Text } from 'ink';
-import { Header, Select } from '../../ui/index.js';
-import { colorizeStatus } from '../../ui/utils.js';
+import { Header, Select } from '../ui/index.js';
+import { colorizeStatus } from '../ui/utils.js';
 
 const STATUS_OPTIONS = ['todo', 'doing', 'done'];
 

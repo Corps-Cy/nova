@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { VERSION } from './theme.js';
+import { VERSION } from '../theme.js';
 
 /**
  * CY Logo — 彩色渐变版

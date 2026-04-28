@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { VERSION } from './ui/theme.js';
-import { Logo } from './ui/Logo.js';
+import { Logo } from './ui/components/Logo.js';
 import { render } from 'ink';
-import { registerClientCommand, registerProjectCommand } from './commands/client/index.js';
-import { registerTaskCommand } from './commands/task/index.js';
-import { registerAICommand } from './commands/ai/index.js';
+import { registerAllCommands } from './commands/index.js';
 
 const program = new Command();
 
@@ -14,13 +12,8 @@ program
   .description('◆ cy — freelancer toolkit')
   .version(VERSION)
   .action(() => {
-    // 无子命令时显示 logo + help
     render(<Logo />);
   });
 
-registerClientCommand(program);
-registerProjectCommand(program);
-registerTaskCommand(program);
-registerAICommand(program);
-
+registerAllCommands(program);
 program.parse();

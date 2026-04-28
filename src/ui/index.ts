@@ -1,7 +1,7 @@
-export { Header } from './Header.js';
-export { Table } from './Table.js';
-export { Select } from './Select.js';
-export { Input } from './Input.js';
-export { Logo } from './Logo.js';
+export { Header } from './components/Header.js';
+export { Table } from './components/Table.js';
+export { Select } from './components/Select.js';
+export { Input } from './components/Input.js';
+export { Logo } from './components/Logo.js';
 export { colorizeStatus, formatMoney, ellipsis } from './utils.js';
 export { theme, colors, statusMap, VERSION } from './theme.js';

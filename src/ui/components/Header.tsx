@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import { colors } from './theme.js';
+import { colors } from '../theme.js';
 
 interface Props {
   title: string;

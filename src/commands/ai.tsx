@@ -1,9 +1,9 @@
 import { Command } from 'commander';
-import { listPrompts, createPrompt, getPrompt, deletePrompt } from '../../store/prompt.js';
+import { listPrompts, createPrompt, getPrompt, deletePrompt } from '../store/prompt.js';
 import { render } from 'ink';
 import React from 'react';
 import { Box, Text } from 'ink';
-import { Header } from '../../ui/index.js';
+import { Header } from '../ui/index.js';
 
 export function registerAICommand(program: Command) {
   const cmd = program.command('ai').description('🤖 AI 工具链');
