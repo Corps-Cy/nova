@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from 'ink';
 import { Command } from 'commander';
-import { listTasks, createTask, updateTaskStatus, updateTaskTime, deleteTask, getTaskStats } from '../store/task.js';
+import { listTasks, createTask, updateTaskStatus, updateTaskTime, deleteTask, getTaskStats, getTask, updateTask } from '../store/task.js';
 import { Box, Text } from 'ink';
 import { Header, Select } from '../ui/index.js';
 import { colorizeStatus } from '../ui/utils.js';
@@ -14,8 +14,12 @@ export function registerTaskCommand(program: Command) {
   cmd.command('list').alias('ls')
     .description('列出任务')
     .option('-s, --status <status>', '按状态筛选')
+    .option('-P, --project-id <projectId>', '按项目筛选')
     .action((opts) => {
-      const tasks = listTasks(opts.status ? { status: opts.status } : undefined) as any[];
+      const tasks = listTasks({
+        status: opts.status,
+        project_id: opts.projectId,
+      } as any) as any[];
       render(
         <Box flexDirection="column">
           <Header title="任务列表" />
@@ -37,35 +41,38 @@ export function registerTaskCommand(program: Command) {
       );
     });
 
-  cmd.command('board').alias('b').description('看板视图').action(() => {
-    const all = listTasks() as any[];
-    const groups = [
-      { label: '📋 待办', items: all.filter(t => t.status === 'todo'), color: 'gray' },
-      { label: '🔄 进行中', items: all.filter(t => t.status === 'doing'), color: 'yellow' },
-      { label: '✅ 已完成', items: all.filter(t => t.status === 'done'), color: 'green' },
-    ];
+  cmd.command('board').alias('b')
+    .description('看板视图')
+    .option('-P, --project-id <projectId>', '按项目筛选')
+    .action((opts) => {
+      const all = listTasks({ project_id: opts.projectId } as any) as any[];
+      const groups = [
+        { label: '📋 待办', items: all.filter(t => t.status === 'todo'), color: 'gray' },
+        { label: '🔄 进行中', items: all.filter(t => t.status === 'doing'), color: 'yellow' },
+        { label: '✅ 已完成', items: all.filter(t => t.status === 'done'), color: 'green' },
+      ];
 
-    render(
-      <Box flexDirection="column">
-        <Header title="任务看板" />
-        <Box>
-          {groups.map(g => (
-            <Box key={g.label} flexDirection="column" marginRight={2} width={32}>
-              <Text bold color={g.color}>{g.label} ({g.items.length})</Text>
-              <Text>──────────────────────────</Text>
-              {g.items.length === 0 && <Text dimColor>  (空)</Text>}
-              {g.items.map(t => (
-                <Box key={t.id} flexDirection="column" marginBottom={1}>
-                  <Text>{t.title}</Text>
-                  {t.time_spent > 0 && <Text dimColor>  ⏱ {t.time_spent}h</Text>}
-                </Box>
-              ))}
-            </Box>
-          ))}
+      render(
+        <Box flexDirection="column">
+          <Header title="任务看板" />
+          <Box>
+            {groups.map(g => (
+              <Box key={g.label} flexDirection="column" marginRight={2} width={32}>
+                <Text bold color={g.color}>{g.label} ({g.items.length})</Text>
+                <Text>──────────────────────────</Text>
+                {g.items.length === 0 && <Text dimColor>  (空)</Text>}
+                {g.items.map(t => (
+                  <Box key={t.id} flexDirection="column" marginBottom={1}>
+                    <Text>{t.title}</Text>
+                    {t.time_spent > 0 && <Text dimColor>  ⏱ {t.time_spent}h</Text>}
+                  </Box>
+                ))}
+              </Box>
+            ))}
+          </Box>
         </Box>
-      </Box>
-    );
-  });
+      );
+    });
 
   cmd.command('add <title>')
     .description('添加任务')
@@ -76,6 +83,23 @@ export function registerTaskCommand(program: Command) {
     .action((title, opts) => {
       const task = createTask({ title, ...opts });
       console.log(`✅ 任务已添加: ${task.title} (${task.id.slice(0, 6)})`);
+    });
+
+  cmd.command('edit <id>')
+    .description('编辑任务')
+    .option('-t, --title <title>', '标题')
+    .option('-d, --description <desc>', '描述')
+    .option('-p, --priority <priority>', '优先级')
+    .option('--due <date>', '截止日期')
+    .action((id, opts) => {
+      const data: Record<string, any> = {};
+      if (opts.title !== undefined) data.title = opts.title;
+      if (opts.description !== undefined) data.description = opts.description;
+      if (opts.priority !== undefined) data.priority = opts.priority;
+      if (opts.due !== undefined) data.due_date = opts.due;
+      if (Object.keys(data).length === 0) { console.log('❌ 请至少指定一个要修改的字段'); return; }
+      updateTask(id, data);
+      console.log('✅ 任务已更新');
     });
 
   cmd.command('status <id> <status>')
@@ -94,6 +118,18 @@ export function registerTaskCommand(program: Command) {
     .action((id, hours) => {
       updateTaskTime(id, Number(hours));
       console.log(`⏱️ 已记录 ${hours} 小时`);
+    });
+
+  cmd.command('show <id>')
+    .description('查看任务详情')
+    .action((id) => {
+      const t = getTask(id);
+      if (!t) { console.log('❌ 未找到'); return; }
+      console.log(`\n📋 ${t.title}`);
+      console.log(`   状态: ${t.status} | 优先级: ${t.priority}`);
+      if (t.description) console.log(`   描述: ${t.description}`);
+      if (t.due_date) console.log(`   截止: ${t.due_date}`);
+      console.log(`   工时: ${t.time_spent}h\n`);
     });
 
   cmd.command('rm <id>').description('删除任务').action((id) => {

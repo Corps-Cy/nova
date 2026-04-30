@@ -9,10 +9,16 @@ export function createTask(data: { title: string; description?: string; priority
   return { id, ...data, status: 'todo', time_spent: 0 };
 }
 
-export function listTasks(filter?: { status?: string }) {
+export function listTasks(filter?: { status?: string; project_id?: string }) {
   const db = getDb();
+  if (filter?.status && filter?.project_id) {
+    return db.prepare('SELECT * FROM task WHERE status = ? AND project_id = ? ORDER BY updated_at DESC').all(filter.status, filter.project_id);
+  }
   if (filter?.status) {
     return db.prepare('SELECT * FROM task WHERE status = ? ORDER BY updated_at DESC').all(filter.status);
+  }
+  if (filter?.project_id) {
+    return db.prepare('SELECT * FROM task WHERE project_id = ? ORDER BY updated_at DESC').all(filter.project_id);
   }
   return db.prepare('SELECT * FROM task ORDER BY updated_at DESC').all();
 }
@@ -33,4 +39,14 @@ export function getTaskStats() {
   return getDb().prepare(`
     SELECT status, COUNT(*) as count FROM task GROUP BY status
   `).all();
+}
+
+export function getTask(id: string) {
+  return getDb().prepare('SELECT * FROM task WHERE id = ?').get(id);
+}
+
+export function updateTask(id: string, data: Record<string, any>) {
+  const fields = Object.keys(data).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(data);
+  getDb().prepare(`UPDATE task SET ${fields}, updated_at = datetime('now') WHERE id = ?`).run(...values, id);
 }

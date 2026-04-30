@@ -28,3 +28,13 @@ export function updateProjectPayment(id: string, amount: number) {
 export function deleteProject(id: string) {
   getDb().prepare('DELETE FROM project WHERE id = ?').run(id);
 }
+
+export function getProject(id: string) {
+  return getDb().prepare('SELECT * FROM project WHERE id = ?').get(id);
+}
+
+export function updateProject(id: string, data: Record<string, any>) {
+  const fields = Object.keys(data).map(k => `${k} = ?`).join(', ');
+  const values = Object.values(data);
+  getDb().prepare(`UPDATE project SET ${fields}, updated_at = datetime('now') WHERE id = ?`).run(...values, id);
+}

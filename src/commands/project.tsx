@@ -2,43 +2,69 @@ import React from 'react';
 import { render } from 'ink';
 import { Command } from 'commander';
 import { Box } from 'ink';
-import { listProjects, createProject } from '../store/project.js';
+import { listProjects, createProject, getProject, updateProject, deleteProject } from '../store/project.js';
 import { Table, Header, formatMoney } from '../ui/index.js';
 import { getDb } from '../store/db.js';
 
 export function registerProjectCommand(program: Command) {
   const cmd = program.command('project').alias('p').description('📦 项目管理');
 
-  cmd.command('list').alias('ls').description('列出所有项目').action(() => {
-    const projects = listProjects() as any[];
-    render(
-      <Box flexDirection="column">
-        <Header title="项目列表" />
-        <Table
-          columns={[
-            { key: 'name', label: '项目名', width: 20 },
-            { key: 'client_name', label: '客户', width: 14 },
-            { key: '_budget', label: '预算', width: 12 },
-            { key: '_received', label: '已收', width: 12 },
-            { key: 'status', label: '状态', width: 10 },
-          ]}
-          rows={projects.map(p => ({
-            ...p,
-            _budget: formatMoney(p.budget),
-            _received: formatMoney(p.received),
-          }))}
-        />
-      </Box>
-    );
-  });
+  cmd.command('list').alias('ls')
+    .description('列出所有项目')
+    .option('-s, --status <status>', '按状态筛选')
+    .action((opts) => {
+      let projects = listProjects() as any[];
+      if (opts.status) projects = projects.filter((p: any) => p.status === opts.status);
+      render(
+        <Box flexDirection="column">
+          <Header title="项目列表" />
+          {projects.length === 0 ? (
+            <Box><Box width={2}></Box><Box dimColor>暂无项目</Box></Box>
+          ) : (
+            <Table
+              columns={[
+                { key: 'name', label: '项目名', width: 20 },
+                { key: 'client_name', label: '客户', width: 14 },
+                { key: '_budget', label: '预算', width: 12 },
+                { key: '_received', label: '已收', width: 12 },
+                { key: 'status', label: '状态', width: 10 },
+                { key: '_id', label: 'ID', width: 8 },
+              ]}
+              rows={projects.map((p: any) => ({
+                ...p,
+                _budget: formatMoney(p.budget),
+                _received: formatMoney(p.received),
+                _id: p.id.slice(0, 6),
+              }))}
+            />
+          )}
+        </Box>
+      );
+    });
 
   cmd.command('add <name>')
     .description('添加项目')
     .requiredOption('-C, --client-id <clientId>', '客户ID')
     .option('-b, --budget <budget>', '预算金额', Number, 0)
+    .option('-n, --notes <notes>', '备注')
     .action((name, opts) => {
       const project = createProject({ client_id: opts.clientId, name, budget: opts.budget });
       console.log(`✅ 项目已添加: ${project.name} (${project.id.slice(0, 6)})`);
+    });
+
+  cmd.command('edit <id>')
+    .description('编辑项目')
+    .option('-n, --name <name>', '项目名')
+    .option('-b, --budget <budget>', '预算', Number)
+    .option('--notes <notes>', '备注')
+    .action((id, opts) => {
+      const data: Record<string, any> = {};
+      if (opts.name !== undefined) data.name = opts.name;
+      if (opts.budget !== undefined) data.budget = opts.budget;
+      if (opts.notes !== undefined) data.notes = opts.notes;
+      if (Object.keys(data).length === 0) { console.log('❌ 请至少指定一个要修改的字段'); return; }
+      updateProject(id, data);
+      console.log('✅ 项目信息已更新');
     });
 
   cmd.command('status <id> <status>')
@@ -59,4 +85,22 @@ export function registerProjectCommand(program: Command) {
       getDb().prepare("UPDATE project SET received = received + ?, updated_at = datetime('now') WHERE id = ?").run(Number(amount), id);
       console.log(`💰 已记录收款: ¥${amount}`);
     });
+
+  cmd.command('show <id>')
+    .description('查看项目详情')
+    .action((id) => {
+      const p = getProject(id);
+      if (!p) { console.log('❌ 未找到'); return; }
+      const pct = p.budget > 0 ? Math.round((p.received / p.budget) * 100) : 0;
+      console.log(`\n📦 ${p.name}`);
+      console.log(`   状态: ${p.status}`);
+      console.log(`   预算: ${formatMoney(p.budget)}`);
+      console.log(`   已收: ${formatMoney(p.received)} (${pct}%)`);
+      console.log(`   备注: ${p.notes || '-'}\n`);
+    });
+
+  cmd.command('rm <id>').description('删除项目').action((id) => {
+    deleteProject(id);
+    console.log('🗑️ 项目已删除');
+  });
 }
