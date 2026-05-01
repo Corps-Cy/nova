@@ -1,9 +1,9 @@
 import React from 'react';
 import { render } from 'ink';
 import { Command } from 'commander';
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { listProjects, createProject, getProject, updateProject, deleteProject } from '../store/project.js';
-import { Table, Header, formatMoney } from '../ui/index.js';
+import { Table, Header, Money, ProgressBar, StatusBadge, Divider } from '../ui/index.js';
 import { getDb } from '../store/db.js';
 
 export function registerProjectCommand(program: Command) {
@@ -17,27 +17,24 @@ export function registerProjectCommand(program: Command) {
       if (opts.status) projects = projects.filter((p: any) => p.status === opts.status);
       render(
         <Box flexDirection="column">
-          <Header title="项目列表" />
-          {projects.length === 0 ? (
-            <Box><Box width={2}></Box><Box dimColor>暂无项目</Box></Box>
-          ) : (
-            <Table
-              columns={[
-                { key: 'name', label: '项目名', width: 20 },
-                { key: 'client_name', label: '客户', width: 14 },
-                { key: '_budget', label: '预算', width: 12 },
-                { key: '_received', label: '已收', width: 12 },
-                { key: 'status', label: '状态', width: 10 },
-                { key: '_id', label: 'ID', width: 8 },
-              ]}
-              rows={projects.map((p: any) => ({
-                ...p,
-                _budget: formatMoney(p.budget),
-                _received: formatMoney(p.received),
-                _id: p.id.slice(0, 6),
-              }))}
-            />
-          )}
+          <Header title="项目列表" subtitle={`${projects.length} 个项目`} />
+          <Table
+            columns={[
+              { key: 'name', label: '项目名', width: 18 },
+              { key: 'client_name', label: '客户', width: 12 },
+              { key: '_budget', label: '预算', width: 12, render: (v: string) => <Money amount={parseFloat(v.replace(/[^0-9.-]/g, '')) || 0} /> },
+              { key: '_received', label: '已收', width: 12, render: (v: string) => <Money amount={parseFloat(v.replace(/[^0-9.-]/g, '')) || 0} /> },
+              { key: 'status', label: '状态', width: 10, render: (v: string) => <StatusBadge status={v} /> },
+              { key: '_id', label: 'ID', width: 8 },
+            ]}
+            rows={projects.map((p: any) => ({
+              ...p,
+              _budget: `¥${p.budget.toLocaleString()}`,
+              _received: `¥${p.received.toLocaleString()}`,
+              _id: p.id.slice(0, 6),
+            }))}
+            footer={`合计预算: ¥${projects.reduce((s: number, p: any) => s + (p.budget || 0), 0).toLocaleString()}`}
+          />
         </Box>
       );
     });
@@ -46,10 +43,9 @@ export function registerProjectCommand(program: Command) {
     .description('添加项目')
     .requiredOption('-C, --client-id <clientId>', '客户ID')
     .option('-b, --budget <budget>', '预算金额', Number, 0)
-    .option('-n, --notes <notes>', '备注')
     .action((name, opts) => {
       const project = createProject({ client_id: opts.clientId, name, budget: opts.budget });
-      console.log(`✅ 项目已添加: ${project.name} (${project.id.slice(0, 6)})`);
+      console.log(`\n✅ 项目已添加: ${project.name} (${project.id.slice(0, 6)})`);
     });
 
   cmd.command('edit <id>')
@@ -83,20 +79,26 @@ export function registerProjectCommand(program: Command) {
     .description('记录收款')
     .action((id, amount) => {
       getDb().prepare("UPDATE project SET received = received + ?, updated_at = datetime('now') WHERE id = ?").run(Number(amount), id);
-      console.log(`💰 已记录收款: ¥${amount}`);
+      console.log(`\n💰 已记录收款: ¥${Number(amount).toLocaleString()}`);
     });
 
   cmd.command('show <id>')
     .description('查看项目详情')
     .action((id) => {
-      const p = getProject(id);
+      const p = getProject(id) as any;
       if (!p) { console.log('❌ 未找到'); return; }
-      const pct = p.budget > 0 ? Math.round((p.received / p.budget) * 100) : 0;
       console.log(`\n📦 ${p.name}`);
       console.log(`   状态: ${p.status}`);
-      console.log(`   预算: ${formatMoney(p.budget)}`);
-      console.log(`   已收: ${formatMoney(p.received)} (${pct}%)`);
-      console.log(`   备注: ${p.notes || '-'}\n`);
+      console.log(`   预算: ¥${(p.budget || 0).toLocaleString()}`);
+      console.log(`   已收: ¥${(p.received || 0).toLocaleString()}`);
+      if (p.budget > 0) {
+        const pct = Math.round((p.received / p.budget) * 100);
+        const filled = Math.round(pct / 5);
+        const bar = '█'.repeat(filled) + '░'.repeat(20 - filled);
+        console.log(`   进度: ${bar} ${pct}%`);
+      }
+      if (p.notes) console.log(`   备注: ${p.notes}`);
+      console.log('');
     });
 
   cmd.command('rm <id>').description('删除项目').action((id) => {

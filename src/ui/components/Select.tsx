@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
+import { colors } from '../theme.js';
 
 interface Option {
   label: string;
   value: string;
+  description?: string;
 }
 
 interface Props {
@@ -20,25 +22,42 @@ export function Select({ options, onSelect, title }: Props) {
     if (key.downArrow) setCursor(c => Math.min(options.length - 1, c + 1));
     if (key.return) onSelect(options[cursor].value);
     if (input >= '1' && input <= String(options.length)) {
-      const idx = parseInt(input) - 1;
-      onSelect(options[idx].value);
+      onSelect(options[parseInt(input) - 1].value);
+    }
+    if (input === 'q' || input === 'Q') {
+      onSelect('__cancel__');
     }
   });
 
   return (
-    <Box flexDirection="column">
-      {title && <Text bold>{title}</Text>}
-      {options.map((opt, i) => (
-        <Box key={opt.value}>
-          <Text color={i === cursor ? 'cyan' : 'gray'}>
-            {i === cursor ? '❯ ' : '  '}
-          </Text>
-          <Text color={i === cursor ? 'cyan' : 'white'}>
-            {opt.label}
-          </Text>
+    <Box flexDirection="column" marginY={1}>
+      {title && (
+        <Box marginBottom={0}>
+          <Text bold color={colors.primary}>  {title}</Text>
         </Box>
-      ))}
-      <Text dimColor>↑↓ 选择，回车确认</Text>
+      )}
+      {options.map((opt, i) => {
+        const active = i === cursor;
+        return (
+          <Box key={opt.value}>
+            <Text color={active ? colors.primary : 'gray'}>
+              {active ? '❯' : ' '}
+            </Text>
+            <Text color={active ? colors.primary : 'gray'}>
+              {active ? ' ' : ' '}
+            </Text>
+            <Text bold={active} color={active ? 'white' : 'gray'}>
+              {opt.label}
+            </Text>
+            {opt.description && (
+              <Text dimColor>  {opt.description}</Text>
+            )}
+          </Box>
+        );
+      })}
+      <Box marginTop={0}>
+        <Text dimColor>  ↑↓ 移动 · 回车选择 · 数字快捷 · q 取消</Text>
+      </Box>
     </Box>
   );
 }

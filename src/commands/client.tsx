@@ -1,31 +1,33 @@
 import React from 'react';
 import { render } from 'ink';
 import { Command } from 'commander';
-import { Box } from 'ink';
-import { listClients, createClient, deleteClient, updateClient } from '../store/client.js';
-import { Table, Header } from '../ui/index.js';
+import { Box, Text } from 'ink';
+import { listClients, createClient, deleteClient, updateClient, getClient } from '../store/client.js';
+import { Table, Header, Divider } from '../ui/index.js';
 
 export function registerClientCommand(program: Command) {
   const cmd = program.command('client').alias('c').description('🏢 客户管理');
 
-  cmd.command('list').alias('ls').description('列出所有客户').action(() => {
-    const clients = listClients() as any[];
-    render(
-      <Box flexDirection="column">
-        <Header title="客户列表" />
-        <Table
-          columns={[
-            { key: 'name', label: '名称', width: 16 },
-            { key: 'company', label: '公司', width: 16 },
-            { key: 'contact', label: '联系人', width: 10 },
-            { key: 'email', label: '邮箱', width: 22 },
-            { key: '_id', label: 'ID', width: 8 },
-          ]}
-          rows={clients.map(c => ({ ...c, _id: c.id.slice(0, 6) }))}
-        />
-      </Box>
-    );
-  });
+  cmd.command('list').alias('ls')
+    .description('列出所有客户')
+    .action(() => {
+      const clients = listClients() as any[];
+      render(
+        <Box flexDirection="column">
+          <Header title="客户列表" subtitle={`${clients.length} 位客户`} />
+          <Table
+            columns={[
+              { key: 'name', label: '名称', width: 16 },
+              { key: 'company', label: '公司', width: 16 },
+              { key: 'contact', label: '联系人', width: 10 },
+              { key: 'email', label: '邮箱', width: 24 },
+              { key: '_id', label: 'ID', width: 8 },
+            ]}
+            rows={clients.map(c => ({ ...c, _id: c.id.slice(0, 6) }))}
+          />
+        </Box>
+      );
+    });
 
   cmd.command('add <name>')
     .description('添加客户')
@@ -35,7 +37,20 @@ export function registerClientCommand(program: Command) {
     .option('-n, --notes <notes>', '备注')
     .action((name, opts) => {
       const client = createClient({ name, ...opts });
-      console.log(`✅ 客户已添加: ${client.name} (${client.id.slice(0, 6)})`);
+      console.log(`\n✅ 客户已添加: ${client.name} (${client.id.slice(0, 6)})`);
+    });
+
+  cmd.command('show <id>')
+    .description('查看客户详情')
+    .action((id) => {
+      const c = getClient(id);
+      if (!c) { console.log('❌ 未找到客户'); return; }
+      console.log(`\n🏢 ${c.name}`);
+      if (c.company) console.log(`   公司: ${c.company}`);
+      if (c.contact) console.log(`   联系: ${c.contact}`);
+      if (c.email) console.log(`   邮箱: ${c.email}`);
+      if (c.notes) console.log(`   备注: ${c.notes}`);
+      console.log(`   创建: ${c.created_at}\n`);
     });
 
   cmd.command('edit <id>')
@@ -50,16 +65,13 @@ export function registerClientCommand(program: Command) {
       if (opts.contact !== undefined) data.contact = opts.contact;
       if (opts.email !== undefined) data.email = opts.email;
       if (opts.notes !== undefined) data.notes = opts.notes;
-      if (Object.keys(data).length === 0) {
-        console.log('❌ 请至少指定一个要修改的字段');
-        return;
-      }
+      if (Object.keys(data).length === 0) { console.log('❌ 请至少指定一个要修改的字段'); return; }
       updateClient(id, data);
-      console.log(`✅ 客户信息已更新`);
+      console.log('✅ 客户信息已更新');
     });
 
   cmd.command('rm <id>').description('删除客户').action((id) => {
     deleteClient(id);
-    console.log(`🗑️ 客户已删除`);
+    console.log('🗑️ 客户已删除');
   });
 }

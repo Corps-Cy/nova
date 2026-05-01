@@ -1,9 +1,10 @@
 import Database from 'better-sqlite3';
 import { homedir } from 'os';
 import { join, dirname } from 'path';
-import { mkdirSync } from 'fs';
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
 
-const DB_DIR = join(homedir(), '.mycli');
+// === Database ===
+const DB_DIR = join(homedir(), '.nova');
 const DB_PATH = join(DB_DIR, 'data.db');
 
 mkdirSync(DB_DIR, { recursive: true });
@@ -64,5 +65,45 @@ function migrate() {
       content TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS chat_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      model TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_history(session_id);
   `);
+}
+
+// === Config ===
+const CONFIG_PATH = join(DB_DIR, 'config.json');
+
+interface NovaConfig {
+  openai_api_key?: string;
+  openai_base_url?: string;
+  anthropic_api_key?: string;
+  default_model?: string;
+}
+
+export function getConfig(): NovaConfig {
+  if (!existsSync(CONFIG_PATH)) return {};
+  try {
+    return JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+export function setConfig(partial: Partial<NovaConfig>) {
+  const config = getConfig();
+  Object.assign(config, partial);
+  writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+}
+
+export function getConfigDir() {
+  return DB_DIR;
 }

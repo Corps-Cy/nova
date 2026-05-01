@@ -65,8 +65,10 @@ export function Logo({ compact = false }: { compact?: boolean }) {
         <Text>{'  '}</Text>
         <GradientText text="◆" from={C1} to={C3} bold />
         <Text>{' '}</Text>
-        <GradientText text="c" from={C1} to={C5} bold />
-        <GradientText text="y" from={C5} to={C3} bold />
+        <GradientText text="n" from={C1} to={C5} bold />
+        <GradientText text="o" from={C5} to={C2} bold />
+        <GradientText text="v" from={C2} to={C3} bold />
+        <GradientText text="a" from={C3} to={C4} bold />
         <Text>{' '}</Text>
         <GradientText text="·" from={C2} to={C3} />
         <Text>{' '}</Text>
@@ -104,9 +106,11 @@ export function Logo({ compact = false }: { compact?: boolean }) {
         <GradientText text="◆" from={C1} to={C3} bold />
         <Text>{' '}</Text>
         {/* "nova" gradient */}
-        <GradientText text="c" from={C1} to={C5} bold />
-        <GradientText text="y" from={C5} to={C3} bold />
-        <Text>{'  '}</Text>
+        <GradientText text="n" from={C1} to={C5} bold />
+        <GradientText text="o" from={C5} to={C2} bold />
+        <GradientText text="v" from={C2} to={C3} bold />
+        <GradientText text="a" from={C3} to={C4} bold />
+        <Text>{' '}</Text>
         {/* Separator dot */}
         <GradientText text="·" from={C2} to={C3} />
         <Text>{' '}</Text>
