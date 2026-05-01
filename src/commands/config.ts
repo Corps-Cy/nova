@@ -1,17 +1,12 @@
 import { Command } from 'commander';
-import { getConfig, setConfig, getConfigDir } from '../store/db.js';
+import { getConfig, setConfig, getConfigDir, PROVIDER_PRESETS } from '../store/db.js';
 
 export function registerConfigCommand(program: Command) {
   const cmd = program.command('config').alias('cfg').description('⚙️ 配置管理');
 
   cmd.command('set <key> [value]')
-    .description('设置配置项 (set openai_api_key sk-... 或 set default_model gpt-4o)')
+    .description('设置配置项')
     .action((key, value) => {
-      const validKeys = ['openai_api_key', 'openai_base_url', 'anthropic_api_key', 'default_model'];
-      if (!validKeys.includes(key)) {
-        console.log(`❌ 无效配置项，可选: ${validKeys.join(', ')}`);
-        return;
-      }
       if (!value) {
         console.log('❌ 请提供值');
         return;
@@ -25,32 +20,50 @@ export function registerConfigCommand(program: Command) {
     .action((key) => {
       const config = getConfig();
       if (key) {
+        // Provider shortcut: "provider.openai.api_key"
+        if (key.startsWith('provider.')) {
+          const parts = key.split('.');
+          const prov = config.providers?.[parts[1]];
+          if (!prov) { console.log(`  未配置供应商: ${parts[1]}`); return; }
+          const field = parts.slice(2).join('.');
+          const val = (prov as any)[field];
+          if (val === undefined) { console.log(`  未设置`); return; }
+          if (field.includes('key')) console.log(`${key} = ${String(val).slice(0, 8)}...${String(val).slice(-4)}`);
+          else console.log(`${key} = ${val}`);
+          return;
+        }
         const val = (config as any)[key];
         if (val) {
-          // Mask API keys
-          if (key.includes('key')) {
-            console.log(`${key} = ${val.slice(0, 6)}...${val.slice(-4)}`);
-          } else {
-            console.log(`${key} = ${val}`);
-          }
+          if (key.includes('key')) console.log(`${key} = ${String(val).slice(0, 6)}...${String(val).slice(-4)}`);
+          else console.log(`${key} = ${val}`);
         } else {
           console.log(`  ${key} = (未设置)`);
         }
       } else {
         console.log(`\n⚙️ Nova 配置 (${getConfigDir()})\n`);
-        const entries = Object.entries(config);
-        if (entries.length === 0) {
-          console.log('  (空)\n');
-          console.log('  设置示例:');
-          console.log('  nova config set openai_api_key sk-...');
-          console.log('  nova config set default_model gpt-4o\n');
+        if (config.default_provider) console.log(`  默认供应商: ${config.default_provider}`);
+        if (config.default_model) console.log(`  默认模型:   ${config.default_model}`);
+
+        const providers = config.providers || {};
+        const providerNames = Object.keys(providers);
+        if (providerNames.length > 0) {
+          console.log(`\n  已配置供应商:`);
+          for (const name of providerNames) {
+            const p = providers[name];
+            const preset = PROVIDER_PRESETS.find(pr => pr.name === name);
+            const label = preset?.label || name;
+            const keyDisplay = p.api_key.slice(0, 8) + '...' + p.api_key.slice(-4);
+            const isDefault = config.default_provider === name ? ' 🟢' : '';
+            console.log(`    ${label}${isDefault}`);
+            console.log(`      key:  ${keyDisplay}`);
+            console.log(`      url:  ${p.base_url}`);
+            console.log(`      model: ${p.default_model}`);
+          }
         } else {
-          entries.forEach(([k, v]) => {
-            const display = k.includes('key') ? `${String(v).slice(0, 6)}...${String(v).slice(-4)}` : String(v);
-            console.log(`  ${k.padEnd(20)} ${display}`);
-          });
-          console.log('');
+          console.log('\n  (未配置供应商)');
+          console.log('  快速开始: nova ai provider set openai sk-...');
         }
+        console.log('');
       }
     });
 
