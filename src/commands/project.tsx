@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import { Box, Text } from 'ink';
 import { listProjects, createProject, getProject, updateProject, deleteProject } from '../store/project.js';
 import { Table, Header, Money, ProgressBar, StatusBadge, Divider } from '../ui/index.js';
-import { getDb } from '../store/db.js';
+import { ensureDb } from '../store/db.js';
 
 export function registerProjectCommand(program: Command) {
   const cmd = program.command('project').alias('p').description('📦 项目管理');
@@ -12,8 +12,8 @@ export function registerProjectCommand(program: Command) {
   cmd.command('list').alias('ls')
     .description('列出所有项目')
     .option('-s, --status <status>', '按状态筛选')
-    .action((opts) => {
-      let projects = listProjects() as any[];
+    .action(async (opts) => {
+      let projects = (await listProjects()) as any[];
       if (opts.status) projects = projects.filter((p: any) => p.status === opts.status);
       render(
         <Box flexDirection="column">
@@ -43,8 +43,8 @@ export function registerProjectCommand(program: Command) {
     .description('添加项目')
     .requiredOption('-C, --client-id <clientId>', '客户ID')
     .option('-b, --budget <budget>', '预算金额', Number, 0)
-    .action((name, opts) => {
-      const project = createProject({ client_id: opts.clientId, name, budget: opts.budget });
+    .action(async (name, opts) => {
+      const project = await createProject({ client_id: opts.clientId, name, budget: opts.budget });
       console.log(`\n✅ 项目已添加: ${project.name} (${project.id.slice(0, 6)})`);
     });
 
@@ -53,39 +53,41 @@ export function registerProjectCommand(program: Command) {
     .option('-n, --name <name>', '项目名')
     .option('-b, --budget <budget>', '预算', Number)
     .option('--notes <notes>', '备注')
-    .action((id, opts) => {
+    .action(async (id, opts) => {
       const data: Record<string, any> = {};
       if (opts.name !== undefined) data.name = opts.name;
       if (opts.budget !== undefined) data.budget = opts.budget;
       if (opts.notes !== undefined) data.notes = opts.notes;
       if (Object.keys(data).length === 0) { console.log('❌ 请至少指定一个要修改的字段'); return; }
-      updateProject(id, data);
+      await updateProject(id, data);
       console.log('✅ 项目信息已更新');
     });
 
   cmd.command('status <id> <status>')
     .description('更新项目状态')
-    .action((id, status) => {
+    .action(async (id, status) => {
       const valid = ['requirement', 'development', 'review', 'delivered'];
       if (!valid.includes(status)) {
         console.log(`❌ 无效状态，可选: ${valid.join(', ')}`);
         return;
       }
-      getDb().prepare("UPDATE project SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, id);
+      const db = await ensureDb();
+      db.prepare("UPDATE project SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, id);
       console.log(`✅ 项目状态已更新为: ${status}`);
     });
 
   cmd.command('pay <id> <amount>')
     .description('记录收款')
-    .action((id, amount) => {
-      getDb().prepare("UPDATE project SET received = received + ?, updated_at = datetime('now') WHERE id = ?").run(Number(amount), id);
+    .action(async (id, amount) => {
+      const db = await ensureDb();
+      db.prepare("UPDATE project SET received = received + ?, updated_at = datetime('now') WHERE id = ?").run(Number(amount), id);
       console.log(`\n💰 已记录收款: ¥${Number(amount).toLocaleString()}`);
     });
 
   cmd.command('show <id>')
     .description('查看项目详情')
-    .action((id) => {
-      const p = getProject(id) as any;
+    .action(async (id) => {
+      const p = (await getProject(id)) as any;
       if (!p) { console.log('❌ 未找到'); return; }
       console.log(`\n📦 ${p.name}`);
       console.log(`   状态: ${p.status}`);
@@ -101,8 +103,8 @@ export function registerProjectCommand(program: Command) {
       console.log('');
     });
 
-  cmd.command('rm <id>').description('删除项目').action((id) => {
-    deleteProject(id);
+  cmd.command('rm <id>').description('删除项目').action(async (id) => {
+    await deleteProject(id);
     console.log('🗑️ 项目已删除');
   });
 }

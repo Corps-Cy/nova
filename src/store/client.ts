@@ -1,28 +1,32 @@
 import { randomUUID } from 'crypto';
-import { getDb } from './db.js';
+import { ensureDb } from './db.js';
 
-export function createClient(data: { name: string; company?: string; contact?: string; email?: string; notes?: string }) {
-  const db = getDb();
+export async function createClient(data: { name: string; company?: string; contact?: string; email?: string; notes?: string }) {
+  const db = await ensureDb();
   const id = randomUUID();
   db.prepare(`INSERT INTO client (id, name, company, contact, email, notes) VALUES (?, ?, ?, ?, ?, ?)`)
     .run(id, data.name, data.company || '', data.contact || '', data.email || '', data.notes || '');
   return { id, ...data };
 }
 
-export function listClients() {
-  return getDb().prepare('SELECT * FROM client ORDER BY updated_at DESC').all();
+export async function listClients() {
+  const db = await ensureDb();
+  return db.prepare('SELECT * FROM client ORDER BY updated_at DESC').all();
 }
 
-export function getClient(id: string) {
-  return getDb().prepare('SELECT * FROM client WHERE id = ?').get(id) as any;
+export async function getClient(id: string) {
+  const db = await ensureDb();
+  return db.prepare('SELECT * FROM client WHERE id = ?').get(id);
 }
 
-export function updateClient(id: string, data: Record<string, any>) {
+export async function updateClient(id: string, data: Record<string, any>) {
+  const db = await ensureDb();
   const fields = Object.keys(data).map(k => `${k} = ?`).join(', ');
   const values = Object.values(data);
-  getDb().prepare(`UPDATE client SET ${fields}, updated_at = datetime('now') WHERE id = ?`).run(...values, id);
+  db.prepare(`UPDATE client SET ${fields}, updated_at = datetime('now') WHERE id = ?`).run(...values, id);
 }
 
-export function deleteClient(id: string) {
-  getDb().prepare('DELETE FROM client WHERE id = ?').run(id);
+export async function deleteClient(id: string) {
+  const db = await ensureDb();
+  db.prepare('DELETE FROM client WHERE id = ?').run(id);
 }

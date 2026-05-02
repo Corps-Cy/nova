@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { getDb } from '../store/db.js';
+import { ensureDb } from '../store/db.js';
 import { formatMoney } from '../ui/utils.js';
 
 export function registerWeekCommand(program: Command) {
@@ -7,8 +7,8 @@ export function registerWeekCommand(program: Command) {
 
   cmd.command('report')
     .description('生成本周报告')
-    .action(() => {
-      const db = getDb();
+    .action(async () => {
+      const db = await ensureDb();
 
       // This week's completed tasks
       const completed = db.prepare(`

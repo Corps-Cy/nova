@@ -6,7 +6,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { Header } from '../ui/index.js';
 import { randomUUID } from 'crypto';
-import { getDb } from '../store/db.js';
+import { ensureDb } from '../store/db.js';
 
 export function registerAICommand(program: Command) {
   const cmd = program.command('ai').description('🤖 AI 工具链');
@@ -87,8 +87,8 @@ export function registerAICommand(program: Command) {
   // === Prompt Management ===
   const ptCmd = cmd.command('prompt').alias('pt').description('Prompt 模板管理');
 
-  ptCmd.command('list').alias('ls').description('列出模板').option('-c, --category <cat>', '按分类筛选').action((opts) => {
-    const prompts = listPrompts(opts.category) as any[];
+  ptCmd.command('list').alias('ls').description('列出模板').option('-c, --category <cat>', '按分类筛选').action(async (opts) => {
+    const prompts = await listPrompts(opts.category) as any[];
     render(
       <Box flexDirection="column">
         <Header title="Prompt 模板" />
@@ -112,25 +112,25 @@ export function registerAICommand(program: Command) {
     .option('-c, --category <cat>', '分类', 'general')
     .option('-f, --file <path>', '从文件读取内容')
     .option('--content <text>', '直接指定内容')
-    .action((name, opts) => {
+    .action(async (name, opts) => {
       if (opts.content) {
-        const p = createPrompt({ name, category: opts.category, content: opts.content });
+        const p = await createPrompt({ name, category: opts.category, content: opts.content });
         console.log(`✅ Prompt 已保存: ${p.name} (${p.id.slice(0, 6)})`);
         return;
       }
       if (opts.file) {
         const fs = require('fs');
         const content = fs.readFileSync(opts.file, 'utf8');
-        const p = createPrompt({ name, category: opts.category, content: content.trim() });
+        const p = await createPrompt({ name, category: opts.category, content: content.trim() });
         console.log(`✅ Prompt 已保存: ${p.name} (${p.id.slice(0, 6)})`);
         return;
       }
       console.log('请输入 prompt 内容（输入 END 结束）:');
       process.stdin.setEncoding('utf8');
       let content = '';
-      process.stdin.on('data', (chunk) => {
+      process.stdin.on('data', async (chunk) => {
         if (chunk.trim() === 'END') {
-          const p = createPrompt({ name, category: opts.category, content: content.trim() });
+          const p = await createPrompt({ name, category: opts.category, content: content.trim() });
           console.log(`\n✅ Prompt 已保存: ${p.name} (${p.id.slice(0, 6)})`);
           process.exit(0);
         }
@@ -138,14 +138,14 @@ export function registerAICommand(program: Command) {
       });
     });
 
-  ptCmd.command('show <id>').description('查看模板详情').action((id) => {
-    const p = getPrompt(id);
+  ptCmd.command('show <id>').description('查看模板详情').action(async (id) => {
+    const p = await getPrompt(id);
     if (!p) { console.log('❌ 未找到'); return; }
     console.log(`\n📌 ${p.name} [${p.category}]\n${p.content}\n`);
   });
 
-  ptCmd.command('rm <id>').description('删除模板').action((id) => {
-    deletePrompt(id);
+  ptCmd.command('rm <id>').description('删除模板').action(async (id) => {
+    await deletePrompt(id);
     console.log('🗑️ 已删除');
   });
 
@@ -167,12 +167,12 @@ export function registerAICommand(program: Command) {
 
       let systemPrompt = opts.system || '';
       if (opts.promptId) {
-        const template = getPrompt(opts.promptId);
+        const template = await getPrompt(opts.promptId);
         if (template) systemPrompt = template.content;
         else console.log(`⚠️ 未找到 prompt ${opts.promptId}`);
       }
 
-      const db = getDb();
+      const db = await ensureDb();
       const sessionId = opts.resume || randomUUID();
       const messages: any[] = [];
 
@@ -247,8 +247,8 @@ export function registerAICommand(program: Command) {
   // === Chat History ===
   cmd.command('history').alias('hs').description('查看对话历史')
     .option('-l, --limit <n>', '显示条数', '5')
-    .action((opts) => {
-      const db = getDb();
+    .action(async (opts) => {
+      const db = await ensureDb();
       const sessions = db.prepare(`SELECT session_id, model, COUNT(*) as count, MAX(created_at) as last_at FROM chat_history GROUP BY session_id ORDER BY last_at DESC LIMIT ?`).all(Number(opts.limit)) as any[];
       if (sessions.length === 0) { console.log('  暂无对话记录'); return; }
       console.log('\n💬 对话历史\n');

@@ -1,6 +1,6 @@
-import Database from 'better-sqlite3';
+import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import { homedir } from 'os';
-import { join, dirname } from 'path';
+import { join } from 'path';
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
 
 // === Database ===
@@ -9,19 +9,97 @@ const DB_PATH = join(DB_DIR, 'data.db');
 
 mkdirSync(DB_DIR, { recursive: true });
 
-let db: Database.Database;
+let _db: SqlJsDatabase | null = null;
 
-export function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    migrate();
+async function initDb() {
+  if (_db) return _db;
+  const SQL = await initSqlJs();
+  if (existsSync(DB_PATH)) {
+    const buf = readFileSync(DB_PATH);
+    _db = new SQL.Database(buf);
+  } else {
+    _db = new SQL.Database();
   }
-  return db;
+  migrate();
+  return _db;
+}
+
+function saveDb() {
+  if (!_db) return;
+  const data = _db.export();
+  const buffer = Buffer.from(data);
+  writeFileSync(DB_PATH, buffer);
+}
+
+/** Synchronous-style wrapper (calls are actually async but we await internally) */
+let _ready: Promise<SqlJsDatabase> | null = null;
+
+function getDbAsync(): Promise<SqlJsDatabase> {
+  if (!_ready) _ready = initDb();
+  return _ready;
+}
+
+/** Lightweight prepare().run() / .all() / .get() adapter matching better-sqlite3 API */
+class Statement {
+  private sql: string;
+  constructor(private db: SqlJsDatabase, sql: string) { this.sql = sql; }
+
+  run(...params: any[]) {
+    this.db.run(this.sql, params);
+    saveDb();
+  }
+
+  all(...params: any[]): any[] {
+    const results = this.db.exec(this.sql, params);
+    if (results.length === 0) return [];
+    const { columns, values } = results[0];
+    return values.map(row => {
+      const obj: Record<string, any> = {};
+      columns.forEach((col, i) => { obj[col] = row[i]; });
+      return obj;
+    });
+  }
+
+  get(...params: any[]): any {
+    const rows = this.all(...params);
+    return rows.length > 0 ? rows[0] : undefined;
+  }
+}
+
+export interface NovaDb {
+  prepare(sql: string): Statement;
+  exec(sql: string): void;
+}
+
+/** Get DB synchronously (must be awaited from caller first via ensureDb) */
+let _cachedDb: NovaDb | null = null;
+let _initPromise: Promise<NovaDb> | null = null;
+
+export async function ensureDb(): Promise<NovaDb> {
+  if (_cachedDb) return _cachedDb;
+  if (!_initPromise) {
+    _initPromise = initDb().then(sqlDb => {
+      _cachedDb = {
+        prepare(sql: string) { return new Statement(sqlDb, sql); },
+        exec(sql: string) { sqlDb.run(sql); saveDb(); },
+      };
+      return _cachedDb;
+    });
+  }
+  return _initPromise;
+}
+
+// Backward compat: sync wrapper that lazy-loads
+// NOTE: callers must now use `await ensureDb()` — but for convenience we
+// provide a sync fallback that throws a helpful message
+export function getDb(): NovaDb {
+  if (_cachedDb) return _cachedDb;
+  throw new Error('Database not initialized. Call ensureDb() first (async).');
 }
 
 function migrate() {
-  db.exec(`
+  if (!_db) return;
+  _db.run(`
     CREATE TABLE IF NOT EXISTS client (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -77,6 +155,7 @@ function migrate() {
 
     CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_history(session_id);
   `);
+  saveDb();
 }
 
 // === Config ===
@@ -89,13 +168,10 @@ export interface ProviderConfig {
 }
 
 export interface NovaConfig {
-  // Legacy keys (kept for backward compat)
   openai_api_key?: string;
   openai_base_url?: string;
   anthropic_api_key?: string;
-  // Provider presets: { provider_name: ProviderConfig }
   providers?: Record<string, ProviderConfig>;
-  // Active provider
   default_provider?: string;
   default_model?: string;
 }
@@ -111,7 +187,6 @@ export function getConfig(): NovaConfig {
 
 export function setConfig(partial: Partial<NovaConfig>) {
   const config = getConfig();
-  // Deep merge for providers
   if (partial.providers) {
     config.providers = { ...config.providers, ...partial.providers };
     delete partial.providers;
@@ -172,18 +247,15 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
   },
 ];
 
-/** Resolve provider config for a given model string */
 export function resolveProvider(config: NovaConfig, model?: string): { apiKey: string; baseUrl: string; resolvedModel: string; isAnthropic: boolean } {
   const useProvider = config.default_provider || 'openai';
   const useModel = model || config.default_model || 'gpt-4o-mini';
 
-  // 1. If model name suggests a specific provider, try to match
   if (useModel.includes('claude')) {
     const key = config.providers?.anthropic?.api_key || config.anthropic_api_key || process.env.ANTHROPIC_API_KEY || '';
     if (key) return { apiKey: key, baseUrl: 'anthropic', resolvedModel: useModel, isAnthropic: true };
   }
 
-  // 2. Try to find a provider preset that contains this model
   for (const preset of PROVIDER_PRESETS) {
     if (preset.models.includes(useModel) && config.providers?.[preset.name]?.api_key) {
       const prov = config.providers[preset.name];
@@ -191,18 +263,11 @@ export function resolveProvider(config: NovaConfig, model?: string): { apiKey: s
     }
   }
 
-  // 3. Fall back to active provider
   const activeConfig = config.providers?.[useProvider];
   if (activeConfig?.api_key) {
-    return {
-      apiKey: activeConfig.api_key,
-      baseUrl: activeConfig.base_url,
-      resolvedModel: useModel,
-      isAnthropic: useProvider === 'anthropic' || activeConfig.base_url === 'anthropic',
-    };
+    return { apiKey: activeConfig.api_key, baseUrl: activeConfig.base_url, resolvedModel: useModel, isAnthropic: useProvider === 'anthropic' || activeConfig.base_url === 'anthropic' };
   }
 
-  // 4. Legacy fallback: openai config or env
   const legacyKey = config.openai_api_key || process.env.OPENAI_API_KEY || '';
   const legacyUrl = config.openai_base_url || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
   if (legacyKey) return { apiKey: legacyKey, baseUrl: legacyUrl, resolvedModel: useModel, isAnthropic: false };

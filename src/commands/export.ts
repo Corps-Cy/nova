@@ -12,13 +12,13 @@ export function registerExportCommand(program: Command) {
   cmd.command('json')
     .description('导出全部数据为 JSON')
     .option('-o, --output <file>', '输出文件路径')
-    .action((opts) => {
+    .action(async (opts) => {
       const data = {
         exported_at: new Date().toISOString(),
-        clients: listClients(),
-        projects: listProjects(),
-        tasks: listTasks(),
-        stats: getTaskStats(),
+        clients: await listClients(),
+        projects: await listProjects(),
+        tasks: await listTasks(),
+        stats: await getTaskStats(),
       };
       const json = JSON.stringify(data, null, 2);
       if (opts.output) {
@@ -32,21 +32,21 @@ export function registerExportCommand(program: Command) {
   cmd.command('csv <type>')
     .description('导出指定类型为 CSV (client/project/task)')
     .option('-o, --output <file>', '输出文件路径')
-    .action((type, opts) => {
+    .action(async (type, opts) => {
       let rows: any[];
       let headers: string[];
 
       switch (type) {
         case 'client':
-          rows = listClients() as any[];
+          rows = (await listClients()) as any[];
           headers = ['id', 'name', 'company', 'contact', 'email', 'notes', 'created_at'];
           break;
         case 'project':
-          rows = listProjects() as any[];
+          rows = (await listProjects()) as any[];
           headers = ['id', 'name', 'client_name', 'status', 'budget', 'received', 'notes', 'created_at'];
           break;
         case 'task':
-          rows = listTasks() as any[];
+          rows = (await listTasks()) as any[];
           headers = ['id', 'title', 'status', 'priority', 'project_id', 'time_spent', 'due_date', 'created_at'];
           break;
         default:

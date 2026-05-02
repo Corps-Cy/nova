@@ -1,24 +1,28 @@
 import { randomUUID } from 'crypto';
-import { getDb } from './db.js';
+import { ensureDb } from './db.js';
 
-export function createPrompt(data: { name: string; category?: string; content: string }) {
+export async function createPrompt(data: { name: string; category?: string; content: string }) {
   const id = randomUUID();
-  getDb().prepare(`INSERT INTO prompt_template (id, name, category, content) VALUES (?, ?, ?, ?)`)
+  const db = await ensureDb();
+  db.prepare(`INSERT INTO prompt_template (id, name, category, content) VALUES (?, ?, ?, ?)`)
     .run(id, data.name, data.category || 'general', data.content);
   return { id, ...data };
 }
 
-export function listPrompts(category?: string) {
+export async function listPrompts(category?: string) {
+  const db = await ensureDb();
   if (category) {
-    return getDb().prepare('SELECT * FROM prompt_template WHERE category = ? ORDER BY created_at DESC').all(category);
+    return db.prepare('SELECT * FROM prompt_template WHERE category = ? ORDER BY created_at DESC').all(category);
   }
-  return getDb().prepare('SELECT * FROM prompt_template ORDER BY created_at DESC').all();
+  return db.prepare('SELECT * FROM prompt_template ORDER BY created_at DESC').all();
 }
 
-export function getPrompt(id: string) {
-  return getDb().prepare('SELECT * FROM prompt_template WHERE id = ?').get(id) as any;
+export async function getPrompt(id: string) {
+  const db = await ensureDb();
+  return db.prepare('SELECT * FROM prompt_template WHERE id = ?').get(id);
 }
 
-export function deletePrompt(id: string) {
-  getDb().prepare('DELETE FROM prompt_template WHERE id = ?').run(id);
+export async function deletePrompt(id: string) {
+  const db = await ensureDb();
+  db.prepare('DELETE FROM prompt_template WHERE id = ?').run(id);
 }

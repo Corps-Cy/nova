@@ -14,11 +14,11 @@ export function registerTaskCommand(program: Command) {
     .description('列出任务')
     .option('-s, --status <status>', '按状态筛选')
     .option('-P, --project-id <projectId>', '按项目筛选')
-    .action((opts) => {
-      const tasks = listTasks({
+    .action(async (opts) => {
+      const tasks = await listTasks({
         status: opts.status,
         project_id: opts.projectId,
-      } as any) as any[];
+      }) as any[];
       render(
         <Box flexDirection="column">
           <Header title="任务列表" subtitle={`${tasks.length} 个任务`} />
@@ -41,8 +41,8 @@ export function registerTaskCommand(program: Command) {
   cmd.command('board').alias('b')
     .description('看板视图')
     .option('-P, --project-id <projectId>', '按项目筛选')
-    .action((opts) => {
-      const all = listTasks({ project_id: opts.projectId } as any) as any[];
+    .action(async (opts) => {
+      const all = await listTasks({ project_id: opts.projectId }) as any[];
       const groups = [
         { label: '📋 待办', status: 'todo', color: 'gray' },
         { label: '🔄 进行中', status: 'doing', color: 'yellow' },
@@ -100,8 +100,8 @@ export function registerTaskCommand(program: Command) {
     .option('-p, --priority <priority>', '优先级 (high/medium/low)', 'medium')
     .option('-P, --project-id <projectId>', '关联项目ID')
     .option('--due <date>', '截止日期')
-    .action((title, opts) => {
-      const task = createTask({ title, ...opts });
+    .action(async (title, opts) => {
+      const task = await createTask({ title, ...opts });
       console.log(`\n✅ 任务已添加: ${task.title} (${task.id.slice(0, 6)})`);
     });
 
@@ -111,39 +111,39 @@ export function registerTaskCommand(program: Command) {
     .option('-d, --description <desc>', '描述')
     .option('-p, --priority <priority>', '优先级')
     .option('--due <date>', '截止日期')
-    .action((id, opts) => {
+    .action(async (id, opts) => {
       const data: Record<string, any> = {};
       if (opts.title !== undefined) data.title = opts.title;
       if (opts.description !== undefined) data.description = opts.description;
       if (opts.priority !== undefined) data.priority = opts.priority;
       if (opts.due !== undefined) data.due_date = opts.due;
       if (Object.keys(data).length === 0) { console.log('❌ 请至少指定一个要修改的字段'); return; }
-      updateTask(id, data);
+      await updateTask(id, data);
       console.log('✅ 任务已更新');
     });
 
   cmd.command('status <id> <status>')
     .description('更新任务状态')
-    .action((id, status) => {
+    .action(async (id, status) => {
       if (!STATUS_OPTIONS.includes(status)) {
         console.log(`❌ 无效状态，可选: ${STATUS_OPTIONS.join(', ')}`);
         return;
       }
-      updateTaskStatus(id, status);
+      await updateTaskStatus(id, status);
       console.log(`✅ 任务状态已更新为: ${status}`);
     });
 
   cmd.command('time <id> <hours>')
     .description('记录工时（小时）')
-    .action((id, hours) => {
-      updateTaskTime(id, Number(hours));
+    .action(async (id, hours) => {
+      await updateTaskTime(id, Number(hours));
       console.log(`\n⏱️ 已记录 ${hours} 小时`);
     });
 
   cmd.command('show <id>')
     .description('查看任务详情')
-    .action((id) => {
-      const t = getTask(id);
+    .action(async (id) => {
+      const t = await getTask(id);
       if (!t) { console.log('❌ 未找到'); return; }
       console.log(`\n📋 ${t.title}`);
       console.log(`   状态: ${t.status} | 优先级: ${t.priority}`);
@@ -153,13 +153,13 @@ export function registerTaskCommand(program: Command) {
       console.log(`   创建: ${t.created_at}\n`);
     });
 
-  cmd.command('rm <id>').description('删除任务').action((id) => {
-    deleteTask(id);
+  cmd.command('rm <id>').description('删除任务').action(async (id) => {
+    await deleteTask(id);
     console.log('🗑️ 任务已删除');
   });
 
-  cmd.command('stats').description('任务统计').action(() => {
-    const stats = getTaskStats() as any[];
+  cmd.command('stats').description('任务统计').action(async () => {
+    const stats = (await getTaskStats()) as any[];
     const total = stats.reduce((s, r: any) => s + r.count, 0);
     console.log('\n📊 任务统计');
     console.log('─────────────────────────');
