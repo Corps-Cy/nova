@@ -23,9 +23,11 @@ function gradientChars(text: string, from: string, to: string, bold = false) {
   });
 }
 
-export function Logo({ compact = false }: { compact?: boolean }) {
-  const C1 = '#06b6d4';
-  const C3 = '#ec4899';
+const C1 = '#06b6d4';
+const C3 = '#ec4899';
+
+/** Full box logo (default `nova` screen) */
+function FullLogo() {
   const B = '#4b5563';
   const W = 38;
   const versionStr = `v${VERSION}`;
@@ -35,26 +37,41 @@ export function Logo({ compact = false }: { compact?: boolean }) {
 
   return (
     <Box flexDirection="column">
-      {/* Top */}
       <Text color={B}>{`╭${'─'.repeat(W)}╮`}</Text>
-      {/* Empty */}
       <Text color={B}>{`│${' '.repeat(W)}│`}</Text>
-      {/* Title: must be wrapped in single Text for inline rendering */}
       <Text>
         <Text color={B}>{`│${' '.repeat(4)}`}</Text>
         {gradientChars('◆  N O V A', C1, C3, true)}
         <Text color={B}>{' '.repeat(W - 12)}│</Text>
       </Text>
-      {/* Subtitle */}
       <Text>
         <Text color={B}>{`│${' '.repeat(6)}`}</Text>
         {gradientChars('freelancer toolkit', '#9ca3af', '#e5e7eb')}
         <Text color={B}>{' '.repeat(W - 20)}│</Text>
       </Text>
-      {/* Empty */}
       <Text color={B}>{`│${' '.repeat(W)}│`}</Text>
-      {/* Bottom */}
       <Text color={B}>{`╰${'─'.repeat(barLeft)} ${versionStr} ${'─'.repeat(barRight)}╯`}</Text>
     </Box>
   );
+}
+
+/** Compact single-line logo (Dashboard header) */
+function CompactLogo() {
+  return (
+    <Text>
+      <Text color={C1} bold>{'◆'}</Text>
+      <Text>{' '}</Text>
+      {gradientChars('N O V A', C1, C3, true)}
+      <Text>{' '}</Text>
+      <Text color="#6b7280">·</Text>
+      <Text>{' '}</Text>
+      <Text dimColor>{'freelancer toolkit'}</Text>
+      <Text>{' '}</Text>
+      <Text color="#6b7280">{`v${VERSION}`}</Text>
+    </Text>
+  );
+}
+
+export function Logo({ compact = false }: { compact?: boolean }) {
+  return compact ? <CompactLogo /> : <FullLogo />;
 }
