@@ -12,8 +12,9 @@ export function registerProjectCommand(program: Command) {
   cmd.command('list').alias('ls')
     .description('列出所有项目')
     .option('-s, --status <status>', '按状态筛选')
+    .option('-k, --search <keyword>', '搜索项目')
     .action(async (opts) => {
-      let projects = (await listProjects()) as any[];
+      let projects = (await listProjects(opts.search)) as any[];
       if (opts.status) projects = projects.filter((p: any) => p.status === opts.status);
       render(
         <Box flexDirection="column">

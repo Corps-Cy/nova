@@ -9,8 +9,12 @@ export async function createClient(data: { name: string; company?: string; conta
   return { id, ...data };
 }
 
-export async function listClients() {
+export async function listClients(search?: string) {
   const db = await ensureDb();
+  if (search) {
+    return db.prepare('SELECT * FROM client WHERE name LIKE ? OR company LIKE ? OR contact LIKE ? ORDER BY updated_at DESC')
+      .all(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
   return db.prepare('SELECT * FROM client ORDER BY updated_at DESC').all();
 }
 

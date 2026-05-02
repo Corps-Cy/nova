@@ -154,6 +154,32 @@ function migrate() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_history(session_id);
+
+    CREATE TABLE IF NOT EXISTS tag (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      color TEXT DEFAULT '#8b5cf6',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS task_tag (
+      task_id TEXT NOT NULL REFERENCES task(id) ON DELETE CASCADE,
+      tag_id TEXT NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+      PRIMARY KEY (task_id, tag_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS project_note (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES project(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      content TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_task_tag_task ON task_tag(task_id);
+    CREATE INDEX IF NOT EXISTS idx_task_tag_tag ON task_tag(tag_id);
+    CREATE INDEX IF NOT EXISTS idx_project_note ON project_note(project_id);
   `);
   saveDb();
 }

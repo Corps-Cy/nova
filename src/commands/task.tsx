@@ -14,10 +14,14 @@ export function registerTaskCommand(program: Command) {
     .description('列出任务')
     .option('-s, --status <status>', '按状态筛选')
     .option('-P, --project-id <projectId>', '按项目筛选')
+    .option('-k, --search <keyword>', '搜索关键词')
+    .option('-t, --tag <tag>', '按标签筛选')
     .action(async (opts) => {
       const tasks = await listTasks({
         status: opts.status,
         project_id: opts.projectId,
+        search: opts.search,
+        tag: opts.tag,
       }) as any[];
       render(
         <Box flexDirection="column">
@@ -101,7 +105,7 @@ export function registerTaskCommand(program: Command) {
     .option('-P, --project-id <projectId>', '关联项目ID')
     .option('--due <date>', '截止日期')
     .action(async (title, opts) => {
-      const task = await createTask({ title, ...opts });
+      const task = await createTask({ title, description: opts.description, priority: opts.priority, project_id: opts.projectId, due_date: opts.due });
       console.log(`\n✅ 任务已添加: ${task.title} (${task.id.slice(0, 6)})`);
     });
 

@@ -9,8 +9,16 @@ export async function createProject(data: { client_id: string; name: string; bud
   return { id, ...data, status: 'requirement', received: 0 };
 }
 
-export async function listProjects() {
+export async function listProjects(search?: string) {
   const db = await ensureDb();
+  if (search) {
+    return db.prepare(`
+      SELECT p.*, c.name as client_name FROM project p
+      LEFT JOIN client c ON p.client_id = c.id
+      WHERE p.name LIKE ? OR c.name LIKE ?
+      ORDER BY p.updated_at DESC
+    `).all(`%${search}%`, `%${search}%`);
+  }
   return db.prepare(`
     SELECT p.*, c.name as client_name FROM project p
     LEFT JOIN client c ON p.client_id = c.id

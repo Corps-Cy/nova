@@ -10,8 +10,9 @@ export function registerClientCommand(program: Command) {
 
   cmd.command('list').alias('ls')
     .description('列出所有客户')
-    .action(async () => {
-      const clients = (await listClients()) as any[];
+    .option('-k, --search <keyword>', '搜索客户')
+    .action(async (opts) => {
+      const clients = (await listClients(opts.search)) as any[];
       render(
         <Box flexDirection="column">
           <Header title="客户列表" subtitle={`${clients.length} 位客户`} />

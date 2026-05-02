@@ -9,18 +9,21 @@ export async function createTask(data: { title: string; description?: string; pr
   return { id, ...data, status: 'todo', time_spent: 0 };
 }
 
-export async function listTasks(filter?: { status?: string; project_id?: string }) {
+export async function listTasks(filter?: { status?: string; project_id?: string; search?: string; tag?: string }) {
   const db = await ensureDb();
-  if (filter?.status && filter?.project_id) {
-    return db.prepare('SELECT * FROM task WHERE status = ? AND project_id = ? ORDER BY updated_at DESC').all(filter.status, filter.project_id);
+  let sql = 'SELECT DISTINCT t.* FROM task t';
+  const params: any[] = [];
+  const conditions: string[] = [];
+  if (filter?.tag) {
+    sql += ' JOIN task_tag tt ON t.id = tt.task_id JOIN tag tg ON tt.tag_id = tg.id';
+    conditions.push('tg.name = ?'); params.push(filter.tag);
   }
-  if (filter?.status) {
-    return db.prepare('SELECT * FROM task WHERE status = ? ORDER BY updated_at DESC').all(filter.status);
-  }
-  if (filter?.project_id) {
-    return db.prepare('SELECT * FROM task WHERE project_id = ? ORDER BY updated_at DESC').all(filter.project_id);
-  }
-  return db.prepare('SELECT * FROM task ORDER BY updated_at DESC').all();
+  if (filter?.status) { conditions.push('t.status = ?'); params.push(filter.status); }
+  if (filter?.project_id) { conditions.push('t.project_id = ?'); params.push(filter.project_id); }
+  if (filter?.search) { conditions.push('(t.title LIKE ? OR t.description LIKE ?)'); params.push(`%${filter.search}%`, `%${filter.search}%`); }
+  if (conditions.length > 0) sql += ' WHERE ' + conditions.join(' AND ');
+  sql += ' ORDER BY t.updated_at DESC';
+  return db.prepare(sql).all(...params);
 }
 
 export async function updateTaskStatus(id: string, status: string) {

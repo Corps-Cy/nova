@@ -1,6 +1,6 @@
 {
   "name": "nova",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Personal CLI toolkit for freelancers",
   "bin": {
     "nova": "./dist/index.js"
