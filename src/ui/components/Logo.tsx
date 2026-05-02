@@ -15,63 +15,91 @@ function hexToRgb(hex: string) {
   return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
 }
 
-function gradientChars(text: string, from: string, to: string, bold = false) {
-  return text.split('').map((char, i) => {
+/** Gradient text — all chars wrapped in one <Text> for inline rendering */
+function G({ text, from, to, bold }: { text: string; from: string; to: string; bold?: boolean }) {
+  const chars = text.split('').map((char, i) => {
     const t = text.length === 1 ? 0 : i / (text.length - 1);
     const color = lerpColor(from, to, t);
     return <Text key={i} bold={bold} color={color}>{char}</Text>;
   });
+  return <Text>{chars}</Text>;
 }
 
-const C1 = '#06b6d4';
-const C3 = '#ec4899';
+const CY = '#06b6d4';
+const VT = '#8b5cf6';
+const PK = '#ec4899';
+const BL = '#3b82f6';
+const RD = '#f43f5e';
+const GR = '#374151';
 
-/** Full box logo (default `nova` screen) */
-function FullLogo() {
-  const B = '#4b5563';
-  const W = 38;
-  const versionStr = `v${VERSION}`;
-  const vLen = versionStr.length + 2;
-  const barLeft = Math.floor((W - vLen) / 2);
-  const barRight = W - vLen - barLeft;
+export function Logo({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <Text>
+        <Text color={CY} bold>{'◆'}</Text>
+        <Text>{' '}</Text>
+        <G text="N O V A" from={CY} to={PK} bold />
+        <Text>{' '}</Text>
+        <Text color="#6b7280">·</Text>
+        <Text>{' '}</Text>
+        <Text dimColor>{'freelancer toolkit'}</Text>
+        <Text>{' '}</Text>
+        <Text color="#6b7280">{`v${VERSION}`}</Text>
+      </Text>
+    );
+  }
+
+  const W = 42;
+  const pad = (n: number) => ' '.repeat(n);
 
   return (
     <Box flexDirection="column">
-      <Text color={B}>{`╭${'─'.repeat(W)}╮`}</Text>
-      <Text color={B}>{`│${' '.repeat(W)}│`}</Text>
+      {/* Top */}
+      <Text color={GR}>{`╔${'═'.repeat(W)}╗`}</Text>
+      <Text color={GR}>{`║${pad(W)}║`}</Text>
+
+      {/* Block art — single Text per line */}
       <Text>
-        <Text color={B}>{`│${' '.repeat(4)}`}</Text>
-        {gradientChars('◆  N O V A', C1, C3, true)}
-        <Text color={B}>{' '.repeat(W - 12)}│</Text>
+        <Text color={GR}>{'║'}</Text>
+        <Text>{pad(2)}</Text>
+        <G text="███" from={CY} to={BL} />
+        <Text>{'  '}</Text>
+        <G text="████" from={BL} to={VT} />
+        <Text>{'  '}</Text>
+        <G text="██" from={VT} to={PK} />
+        <Text>{'  '}</Text>
+        <G text="█" from={PK} to={RD} />
+        <Text color={GR}>{pad(W - 18)}║</Text>
       </Text>
+
+      {/* N O V A letters */}
       <Text>
-        <Text color={B}>{`│${' '.repeat(6)}`}</Text>
-        {gradientChars('freelancer toolkit', '#9ca3af', '#e5e7eb')}
-        <Text color={B}>{' '.repeat(W - 20)}│</Text>
+        <Text color={GR}>{'║'}</Text>
+        <Text>{pad(6)}</Text>
+        <G text="N   O   V   A" from={CY} to={PK} bold />
+        <Text color={GR}>{pad(W - 20)}║</Text>
       </Text>
-      <Text color={B}>{`│${' '.repeat(W)}│`}</Text>
-      <Text color={B}>{`╰${'─'.repeat(barLeft)} ${versionStr} ${'─'.repeat(barRight)}╯`}</Text>
+
+      {/* Gradient separator */}
+      <Text>
+        <Text color={GR}>{'║'}</Text>
+        <Text>{pad(2)}</Text>
+        <G text="━━━━━━━━━━ ◆ ━━━━━━━━━━" from={CY} to={PK} />
+        <Text color={GR}>{pad(W - 24)}║</Text>
+      </Text>
+
+      {/* Subtitle */}
+      <Text>
+        <Text color={GR}>{'║'}</Text>
+        <Text>{pad(4)}</Text>
+        <G text="freelancer toolkit" from="#9ca3af" to="#e5e7eb" />
+        <Text color={GR}>{pad(W - 20)}║</Text>
+      </Text>
+
+      <Text color={GR}>{`║${pad(W)}║`}</Text>
+
+      {/* Bottom */}
+      <Text color={GR}>{`╚${'═'.repeat(W)}╝`}</Text>
     </Box>
   );
-}
-
-/** Compact single-line logo (Dashboard header) */
-function CompactLogo() {
-  return (
-    <Text>
-      <Text color={C1} bold>{'◆'}</Text>
-      <Text>{' '}</Text>
-      {gradientChars('N O V A', C1, C3, true)}
-      <Text>{' '}</Text>
-      <Text color="#6b7280">·</Text>
-      <Text>{' '}</Text>
-      <Text dimColor>{'freelancer toolkit'}</Text>
-      <Text>{' '}</Text>
-      <Text color="#6b7280">{`v${VERSION}`}</Text>
-    </Text>
-  );
-}
-
-export function Logo({ compact = false }: { compact?: boolean }) {
-  return compact ? <CompactLogo /> : <FullLogo />;
 }

@@ -13,12 +13,19 @@ program
   .description('◆ nova — freelancer toolkit')
   .version(VERSION);
 
-// No subcommand → launch interactive TUI
-program.action(async () => {
-  // Lazy import to avoid loading TUI for CLI commands
-  const { default: Dashboard } = await import('./ui/components/Dashboard.js');
-  render(<Dashboard />);
+// Default: show logo
+program.action(() => {
+  render(<Logo />);
 });
 
 registerAllCommands(program);
+
+// TUI command — interactive dashboard
+program.command('tui')
+  .description('🖥️  交互式 TUI 面板')
+  .action(async () => {
+    const { default: Dashboard } = await import('./ui/components/Dashboard.js');
+    render(<Dashboard />);
+  });
+
 program.parse();

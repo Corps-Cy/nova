@@ -6,12 +6,7 @@ import { statusMap, colors } from '../theme.js';
 export function StatusBadge({ status }: { status: string }) {
   const s = statusMap[status];
   if (!s) return <Text> {status}</Text>;
-  return (
-    <Box>
-      <Text color="gray"> </Text>
-      <Text color={s.color}>● {s.label}</Text>
-    </Box>
-  );
+  return <Text>{' '}<Text color={s.color}>● {s.label}</Text></Text>;
 }
 
 /** 优先级标签 */
@@ -31,10 +26,7 @@ export function ProgressBar({ value, max, width = 20, color = colors.primary }: 
   const empty = width - filled;
   const bar = '█'.repeat(filled) + '░'.repeat(empty);
   return (
-    <Box>
-      <Text color={color}>{bar}</Text>
-      <Text> {Math.round(pct * 100)}%</Text>
-    </Box>
+    <Text color={color}>{bar} {Math.round(pct * 100)}%</Text>
   );
 }
 
