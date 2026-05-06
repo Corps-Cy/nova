@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as userService from '../store/user.js';
 import * as apiKeyService from '../store/apiKey.js';
@@ -235,7 +236,7 @@ export function createApiServer() {
     path.join(__dirname, '..', '..', 'web', 'dist'),
   ];
   let webDist = webDistCandidates.find(p => {
-    try { require('fs').accessSync(p); return true; } catch { return false; }
+    try { fs.accessSync(p); return true; } catch { return false; }
   });
   if (!webDist) webDist = webDistCandidates[1]; // fallback
   app.use(express.static(webDist));
