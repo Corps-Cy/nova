@@ -239,7 +239,7 @@ export function createApiServer() {
   });
   if (!webDist) webDist = webDistCandidates[1]; // fallback
   app.use(express.static(webDist));
-  app.get('*', (_req, res) => {
+  app.use((_req, res) => {
     res.sendFile(path.join(webDist, 'index.html'));
   });
 
