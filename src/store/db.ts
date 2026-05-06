@@ -18,7 +18,16 @@ export function ensureDb(): Database.Database.Database {
   db.pragma('foreign_keys = ON');
 
   // Load sqlite-vec extension
-  sqliteVec.load(db);
+  try {
+    const vecPath = sqliteVec.getLoadablePath ? sqliteVec.getLoadablePath() : undefined;
+    if (vecPath) {
+      db.loadExtension(vecPath);
+    } else {
+      sqliteVec.load(db);
+    }
+  } catch (e: any) {
+    console.warn('sqlite-vec not loaded:', e.message);
+  }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS knowledge_base (
