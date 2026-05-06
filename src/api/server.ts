@@ -229,7 +229,15 @@ export function createApiServer() {
   });
 
   // Serve React SPA
-  const webDist = path.join(__dirname, '..', '..', 'web', 'dist');
+  // Serve React SPA - try multiple path strategies for dev vs Docker
+  const webDistCandidates = [
+    path.join(process.cwd(), 'web', 'dist'),
+    path.join(__dirname, '..', '..', 'web', 'dist'),
+  ];
+  let webDist = webDistCandidates.find(p => {
+    try { require('fs').accessSync(p); return true; } catch { return false; }
+  });
+  if (!webDist) webDist = webDistCandidates[1]; // fallback
   app.use(express.static(webDist));
   app.get('*', (_req, res) => {
     res.sendFile(path.join(webDist, 'index.html'));
