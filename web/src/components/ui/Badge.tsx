@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
 
-export function Badge({ className, variant = 'default', children }: { className?: string; variant?: 'default' | 'success' | 'warning' | 'error'; children: React.ReactNode }) {
+export function Badge({ className = '', variant = 'default', children }: { className?: string; variant?: 'default' | 'success' | 'warning' | 'error'; children: React.ReactNode }) {
   return (
     <span
       className={cn(
