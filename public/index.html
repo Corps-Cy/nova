@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova — AI 知识库管理</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f0f11; --bg2: #18181b; --bg3: #27272a; --bg4: #3f3f46;
+      --text: #fafafa; --text2: #a1a1aa; --text3: #71717a;
+      --primary: #8b5cf6; --primary2: #7c3aed; --primary-bg: rgba(139,92,246,0.1);
+      --green: #22c55e; --green-bg: rgba(34,197,94,0.1);
+      --blue: #3b82f6; --blue-bg: rgba(59,130,246,0.1);
+      --red: #ef4444; --red-bg: rgba(239,68,68,0.1);
+      --yellow: #eab308; --yellow-bg: rgba(234,179,8,0.1);
+      --border: #27272a; --radius: 12px; --radius-sm: 8px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    
+    /* Layout */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+    .main { margin-left: 260px; flex: 1; padding: 32px 40px; max-width: 1200px; }
+
+    /* Sidebar */
+    .sidebar-logo { padding: 24px 20px; display: flex; align-items: center; gap: 12px; }
+    .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary), #6366f1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white; }
+    .logo-text { font-weight: 700; font-size: 18px; }
+    .logo-sub { font-size: 11px; color: var(--text3); font-weight: 400; }
+    .nav { padding: 8px 12px; flex: 1; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-size: 14px; font-weight: 500; transition: all 0.15s; margin-bottom: 2px; }
+    .nav-item:hover { background: var(--bg3); color: var(--text); }
+    .nav-item.active { background: var(--primary-bg); color: var(--primary); }
+    .nav-item svg { width: 18px; height: 18px; opacity: 0.7; }
+    .nav-item.active svg { opacity: 1; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+    .sidebar-footer span { font-size: 12px; color: var(--text3); }
+
+    /* Page header */
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .page-desc { color: var(--text2); font-size: 14px; }
+
+    /* Cards */
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .card-title { font-size: 16px; font-weight: 600; }
+
+    /* Stat cards */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .stat-label { font-size: 13px; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-value.green { color: var(--green); }
+    .stat-value.blue { color: var(--blue); }
+    .stat-value.purple { color: var(--primary); }
+
+    /* Table */
+    .table { width: 100%; border-collapse: collapse; }
+    .table th { text-align: left; padding: 10px 14px; font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); font-weight: 600; }
+    .table td { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .table tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #6366f1); color: white; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg3); color: var(--text); }
+    .btn-danger { background: var(--red-bg); color: var(--red); }
+    .btn-danger:hover { background: rgba(239,68,68,0.2); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* Badge */
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .badge-green { background: var(--green-bg); color: var(--green); }
+    .badge-blue { background: var(--blue-bg); color: var(--blue); }
+    .badge-purple { background: var(--primary-bg); color: var(--primary); }
+
+    /* Input */
+    .input { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; width: 100%; transition: border-color 0.2s; }
+    .input:focus { border-color: var(--primary); }
+    .input::placeholder { color: var(--text3); }
+    textarea.input { resize: vertical; min-height: 80px; }
+    .label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+    .form-group { margin-bottom: 16px; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; }
+    .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; width: 480px; max-width: 90vw; max-height: 85vh; overflow-y: auto; }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-header h3 { font-size: 16px; font-weight: 600; }
+    .modal-close { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 20px; padding: 4px; }
+    .modal-body { padding: 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* Chat */
+    .chat-container { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .chat-header { padding: 16px 20px; background: linear-gradient(135deg, var(--primary), #6366f1); color: white; font-weight: 600; font-size: 15px; }
+    .chat-messages { height: 400px; overflow-y: auto; padding: 16px; }
+    .chat-msg { margin-bottom: 14px; display: flex; }
+    .chat-msg.user { justify-content: flex-end; }
+    .chat-msg .bubble { max-width: 75%; padding: 10px 16px; border-radius: 14px; font-size: 14px; line-height: 1.6; }
+    .chat-msg.assistant .bubble { background: var(--bg3); color: var(--text); border-radius: 14px 14px 14px 4px; }
+    .chat-msg.user .bubble { background: linear-gradient(135deg, var(--primary), #6366f1); color: white; border-radius: 14px 14px 4px 14px; }
+    .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+    .chat-input-area .input { flex: 1; }
+    .typing-indicator span { display: inline-block; width: 6px; height: 6px; background: var(--text3); border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
+    .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.16s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.32s; }
+    @keyframes bounce { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    /* Embed code */
+    .code-block { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: var(--text2); overflow-x: auto; position: relative; }
+    .code-block .copy-btn { position: absolute; top: 8px; right: 8px; }
+
+    /* Pages */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 20px; }
+      .stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">N</div>
+        <div>
+          <div class="logo-text">Nova</div>
+          <div class="logo-sub">Knowledge Base v2.0</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          仪表盘
+        </div>
+        <div class="nav-item" data-page="knowledge" onclick="switchPage('knowledge')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          知识库
+        </div>
+        <div class="nav-item" data-page="chat" onclick="switchPage('chat')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          对话测试
+        </div>
+        <div class="nav-item" data-page="apikeys" onclick="switchPage('apikeys')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          API Keys
+        </div>
+        <div class="nav-item" data-page="widget" onclick="switchPage('widget')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>
+          嵌入组件
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <span>Nova v2.0.0</span>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main">
+      <!-- Dashboard Page -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <h1 class="page-title">仪表盘</h1>
+          <p class="page-desc">知识库使用概览</p>
+        </div>
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-label">知识库</div>
+            <div class="stat-value purple" id="stat-kbs">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">总查询</div>
+            <div class="stat-value blue" id="stat-queries">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">平均延迟</div>
+            <div class="stat-value green" id="stat-latency">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">今日查询</div>
+            <div class="stat-value" id="stat-today">-</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">知识库列表</span>
+            <button class="btn btn-primary" onclick="showCreateKbModal()">+ 新建知识库</button>
+          </div>
+          <table class="table">
+            <thead>
+              <tr><th>名称</th><th>文档数</th><th>分块数</th><th>描述</th></tr>
+            </thead>
+            <tbody id="kb-table-body">
+              <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:40px;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Knowledge Base Detail Page -->
+      <div id="page-knowledge" class="page">
+        <div class="page-header">
+          <h1 class="page-title">知识库管理</h1>
+          <p class="page-desc">管理文档、查看详情</p>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">选择知识库</span>
+          </div>
+          <select id="kb-select" class="input" onchange="loadKbDetail()" style="max-width:300px;">
+            <option>加载中...</option>
+          </select>
+        </div>
+        <div id="kb-detail-area"></div>
+      </div>
+
+      <!-- Chat Test Page -->
+      <div id="page-chat" class="page">
+        <div class="page-header">
+          <h1 class="page-title">对话测试</h1>
+          <p class="page-desc">测试知识库问答效果</p>
+        </div>
+        <div style="margin-bottom:16px;">
+          <select id="chat-kb-select" class="input" style="max-width:300px;">
+            <option>加载中...</option>
+          </select>
+        </div>
+        <div class="chat-container">
+          <div class="chat-header">AI 知识库问答</div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg assistant">
+              <div class="bubble">请选择知识库，然后开始提问。我会基于文档内容为您回答。</div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" id="chat-input" class="input" placeholder="输入您的问题..." onkeydown="if(event.key==='Enter')sendChat()">
+            <button class="btn btn-primary" onclick="sendChat()">发送</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Keys Page -->
+      <div id="page-apikeys" class="page">
+        <div class="page-header">
+          <h1 class="page-title">API Keys</h1>
+          <p class="page-desc">管理 API 访问密钥</p>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">密钥列表</span>
+            <button class="btn btn-primary" onclick="createApiKey()">+ 创建密钥</button>
+          </div>
+          <table class="table">
+            <thead>
+              <tr><th>Key</th><th>名称</th><th>知识库</th><th>操作</th></tr>
+            </thead>
+            <tbody id="api-keys-body">
+              <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:40px;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Widget Embed Page -->
+      <div id="page-widget" class="page">
+        <div class="page-header">
+          <h1 class="page-title">嵌入组件</h1>
+          <p class="page-desc">一行代码为您的网站添加 AI 问答</p>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">快速接入</div>
+          <p style="color:var(--text2);font-size:14px;margin-bottom:16px;">将以下代码添加到您的网站 HTML 的 &lt;/body&gt; 标签之前：</p>
+          <div class="code-block" id="widget-code">
+            &lt;!-- Nova AI Widget --&gt;
+            &lt;script&gt;
+              window.novaKbId = "YOUR_KB_ID";
+              window.novaApiKey = "YOUR_API_KEY";
+            &lt;/script&gt;
+            &lt;script src="http://localhost:3000/widget.js"&gt;&lt;/script&gt;
+          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="copyWidgetCode()">复制代码</button>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">配置说明</div>
+          <table class="table">
+            <tr><td style="color:var(--text2);width:140px;">novaKbId</td><td>知识库 ID</td></tr>
+            <tr><td style="color:var(--text2);">novaApiKey</td><td>API Key</td></tr>
+            <tr><td style="color:var(--text2);">widget.js</td><td>组件脚本地址（指向您的 Nova 服务）</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create KB Modal -->
+  <div id="modal-create-kb" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>新建知识库</h3>
+        <button class="modal-close" onclick="closeModal('modal-create-kb')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="label">名称</label>
+          <input type="text" id="kb-name" class="input" placeholder="例如：产品文档">
+        </div>
+        <div class="form-group">
+          <label class="label">描述</label>
+          <textarea id="kb-desc" class="input" placeholder="可选描述..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('modal-create-kb')">取消</button>
+        <button class="btn btn-primary" onclick="createKb()">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ingest URL Modal -->
+  <div id="modal-ingest-url" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>抓取网页</h3>
+        <button class="modal-close" onclick="closeModal('modal-ingest-url')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="label">网页 URL</label>
+          <input type="text" id="ingest-url" class="input" placeholder="https://example.com/docs">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('modal-ingest-url')">取消</button>
+        <button class="btn btn-primary" onclick="ingestUrl()">抓取</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create API Key Modal -->
+  <div id="modal-create-key" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>创建 API Key</h3>
+        <button class="modal-close" onclick="closeModal('modal-create-key')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="label">名称</label>
+          <input type="text" id="key-name" class="input" placeholder="例如：生产环境">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('modal-create-key')">取消</button>
+        <button class="btn btn-primary" onclick="doCreateApiKey()">创建</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let currentKbId = '';
+
+    // Page switching
+    function switchPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      document.querySelector(`[data-page="${page}"]`).classList.add('active');
+      if (page === 'knowledge') loadKbSelects();
+      if (page === 'chat') loadKbSelects();
+    }
+
+    // Modal
+    function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // API calls
+    async function api(path, opts = {}) {
+      const res = await fetch(API + path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+      return res.json();
+    }
+
+    // Load dashboard
+    async function loadDashboard() {
+      const [kbs, stats] = await Promise.all([
+        api('/api/v1/dashboard/kb'),
+        api('/api/v1/stats/usage?days=30')
+      ]);
+      
+      document.getElementById('stat-kbs').textContent = kbs.length;
+      document.getElementById('stat-queries').textContent = stats.total?.queries || 0;
+      document.getElementById('stat-latency').textContent = Math.round(stats.total?.avg_latency || 0) + 'ms';
+      
+      // Today queries
+      const today = new Date().toISOString().split('T')[0];
+      const todayStats = stats.daily?.find(d => d.date === today);
+      document.getElementById('stat-today').textContent = todayStats?.queries || 0;
+
+      const tbody = document.getElementById('kb-table-body');
+      if (kbs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:40px;">暂无知识库，点击右上角创建</td></tr>';
+      } else {
+        tbody.innerHTML = kbs.map(kb => `<tr>
+          <td><strong>${esc(kb.name)}</strong> <span style="color:var(--text3);font-size:12px;">${kb.id}</span></td>
+          <td>${kb.doc_count}</td>
+          <td>${kb.total_chunks}</td>
+          <td style="color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(kb.description || '-')}</td>
+        </tr>`).join('');
+      }
+    }
+
+    // Load KB selects
+    async function loadKbSelects() {
+      const kbs = await api('/api/v1/dashboard/kb');
+      const options = kbs.map(kb => `<option value="${kb.id}">${kb.name}</option>`).join('');
+      const defaultOpt = kbs.length === 0 ? '<option>暂无知识库</option>' : options;
+      document.getElementById('kb-select').innerHTML = defaultOpt;
+      document.getElementById('chat-kb-select').innerHTML = defaultOpt;
+      if (kbs.length > 0) {
+        currentKbId = kbs[0].id;
+        loadKbDetail();
+      }
+    }
+
+    // KB detail
+    async function loadKbDetail() {
+      const kbId = document.getElementById('kb-select').value;
+      if (!kbId) return;
+      currentKbId = kbId;
+      
+      const { listDocuments } = await import('/api/v1/dashboard/kb').catch(() => ({}));
+      const area = document.getElementById('kb-detail-area');
+      
+      area.innerHTML = `
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">文档管理</span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost" onclick="showModal('modal-ingest-url')">URL 抓取</button>
+              <button class="btn btn-primary" onclick="uploadFile()">上传文件</button>
+            </div>
+          </div>
+          <div id="docs-table-area" style="min-height:100px;text-align:center;color:var(--text3);padding:40px;">加载中...</div>
+        </div>
+        <input type="file" id="file-input" style="display:none" accept=".txt,.md,.pdf,.csv,.json" onchange="handleFileUpload(event)">
+      `;
+      loadDocs(kbId);
+    }
+
+    async function loadDocs(kbId) {
+      const docs = await api('/api/v1/dashboard/docs/' + kbId);
+      const area = document.getElementById('docs-table-area');
+      if (!docs || docs.length === 0) {
+        area.innerHTML = '<p style="color:var(--text3);padding:20px;">暂无文档，点击上传按钮添加</p>';
+        return;
+      }
+      area.innerHTML = '<table class="table"><thead><tr><th>文件名</th><th>分块数</th><th>来源</th><th>时间</th></tr></thead><tbody>' +
+        docs.map(d => '<tr><td>' + esc(d.filename) + '</td><td>' + d.chunk_count + '</td><td><span class="badge badge-blue">' + d.source_type + '</span></td><td style="color:var(--text3);">' + (d.created_at||'').split('T')[0] + '</td></tr>').join('') +
+        '</tbody></table>';
+    }
+
+    function showCreateKbModal() { showModal('modal-create-kb'); }
+
+    async function createKb() {
+      const name = document.getElementById('kb-name').value.trim();
+      if (!name) { alert('请输入名称'); return; }
+      const desc = document.getElementById('kb-desc').value.trim();
+      await api('/api/v1/dashboard/kb', {
+        method: 'POST',
+        body: JSON.stringify({ name, description: desc })
+      });
+      closeModal('modal-create-kb');
+      document.getElementById('kb-name').value = '';
+      document.getElementById('kb-desc').value = '';
+      loadDashboard();
+    }
+
+    function uploadFile() { document.getElementById('file-input').click(); }
+
+    async function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file || !currentKbId) return;
+      const content = await file.text();
+      try {
+        await api('/api/v1/dashboard/ingest/file', {
+          method: 'POST',
+          body: JSON.stringify({ kb_id: currentKbId, content, filename: file.name })
+        });
+        alert('上传成功！');
+      } catch (err) {
+        alert('上传失败：' + err.message);
+      }
+    }
+
+    async function ingestUrl() {
+      const url = document.getElementById('ingest-url').value.trim();
+      if (!url || !currentKbId) { alert('请输入 URL'); return; }
+      try {
+        await api('/api/v1/dashboard/ingest/url', {
+          method: 'POST',
+          body: JSON.stringify({ kb_id: currentKbId, url })
+        });
+        closeModal('modal-ingest-url');
+        alert('抓取成功！');
+      } catch (err) {
+        alert('抓取失败：' + err.message);
+      }
+    }
+
+    // Chat
+    async function sendChat() {
+      const kbId = document.getElementById('chat-kb-select').value;
+      const input = document.getElementById('chat-input');
+      const q = input.value.trim();
+      if (!q || !kbId) return;
+      input.value = '';
+
+      const msgs = document.getElementById('chat-messages');
+      msgs.innerHTML += `<div class="chat-msg user"><div class="bubble">${esc(q)}</div></div>`;
+      msgs.innerHTML += `<div class="chat-msg assistant" id="typing"><div class="bubble"><span class="typing-indicator"><span></span><span></span><span></span></span></div></div>`;
+      msgs.scrollTop = msgs.scrollHeight;
+
+      try {
+        const res = await api('/api/v1/dashboard/query', {
+          method: 'POST',
+          body: JSON.stringify({ kb_id: kbId, question: q })
+        });
+        document.getElementById('typing')?.remove();
+        msgs.innerHTML += `<div class="chat-msg assistant"><div class="bubble">${esc(res.answer || '无法回答')}</div></div>`;
+        if (res.sources?.length) {
+          msgs.innerHTML += `<div style="font-size:12px;color:var(--text3);padding:0 16px 8px;">📎 ${res.sources.length} 个来源</div>`;
+        }
+      } catch (err) {
+        document.getElementById('typing')?.remove();
+        msgs.innerHTML += `<div class="chat-msg assistant"><div class="bubble" style="color:var(--red);">请求失败: ${esc(err.message)}</div></div>`;
+      }
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    // API Keys
+    async function loadApiKeys() {
+      const keys = await api('/api/v1/dashboard/api-keys');
+      const tbody = document.getElementById('api-keys-body');
+      if (keys.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:40px;">暂无密钥</td></tr>';
+      } else {
+        tbody.innerHTML = keys.map(k => `<tr>
+          <td style="font-family:monospace;font-size:12px;">${k.key.slice(0,15)}...${k.key.slice(-8)}</td>
+          <td>${esc(k.name || '-')}</td>
+          <td>${esc(k.kb_name || '全部')}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="deleteKey('${k.id}')">删除</button></td>
+        </tr>`).join('');
+      }
+    }
+
+    function createApiKey() { showModal('modal-create-key'); }
+
+    async function doCreateApiKey() {
+      const name = document.getElementById('key-name').value.trim() || '';
+      const res = await api('/api/v1/dashboard/api-keys', {
+        method: 'POST',
+        body: JSON.stringify({ name })
+      });
+      closeModal('modal-create-key');
+      document.getElementById('key-name').value = '';
+      if (res.key) {
+        prompt('API Key 已创建（请保存，只会显示一次）:', res.key);
+      }
+      loadApiKeys();
+    }
+
+    async function deleteKey(id) {
+      if (!confirm('确认删除？')) return;
+      await api('/api/v1/dashboard/api-keys/' + id, { method: 'DELETE' });
+      loadApiKeys();
+    }
+
+    // Widget
+    function copyWidgetCode() {
+      const code = document.getElementById('widget-code').textContent;
+      navigator.clipboard.writeText(code.replace(/&lt;/g,'<').replace(/&gt;/g,'>')).then(() => {
+        alert('已复制！');
+      });
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // Init
+    loadDashboard();
+    loadApiKeys();
+  </script>
+</body>
+</html>

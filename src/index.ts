@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import { registerKbCommand } from './commands/kb.js';
 import { registerApiCommand } from './commands/api.js';
 import { registerConfigCommand } from './commands/config.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const VERSION = '2.0.0';
 
@@ -53,10 +57,18 @@ program.command('serve')
   .action(async (opts) => {
     const { createApiServer } = await import('./api/server.js');
     const app = createApiServer();
+    
+    // Serve web dashboard
+    const publicPath = path.join(__dirname, '..', 'public');
+    app.use((await import('express')).default.static(publicPath));
+    app.get('/', (_req: any, res: any) => res.sendFile(path.join(publicPath, 'index.html')));
+    
     app.listen(parseInt(opts.port), opts.host, () => {
       console.log(`\n🚀 nova API 服务已启动`);
-      console.log(`   http://${opts.host}:${opts.port}`);
-      console.log(`   健康检查: http://localhost:${opts.port}/health\n`);
+      console.log(`   Web 管理台: http://localhost:${opts.port}`);
+      console.log(`   API 接口:    http://localhost:${opts.port}/api/v1/`);
+      console.log(`   健康检查:    http://localhost:${opts.port}/health`);
+      console.log(`   嵌入组件:    http://localhost:${opts.port}/widget.js\n`);
     });
   });
 
