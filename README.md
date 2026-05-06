@@ -1,162 +1,66 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/version-0.3.0-cyan?style=flat-square" alt="version"/>
-  <img src="https://img.shields.io/badge/node-%3E%3D18-green?style=flat-square" alt="node"/>
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="license"/>
-</p>
+# nova v2.0 — AI RAG Knowledge Base API Service
 
-<h1 align="center">
-  <span style="color:#06b6d4">◆</span> <span style="color:#06b6d4">c</span><span style="color:#3b82f6">y</span>
-</h1>
-
-<p align="center">
-  <strong>Freelancer Toolkit</strong> — 一站式接单管理 CLI 工具
-</p>
-
-<p align="center">
-  客户管理 · 项目跟踪 · 任务看板 · AI 工具链
-</p>
-
----
-
-## ✨ 特性
-
-- 🏢 **客户管理** — 客户信息 CRUD、联系方式、备注
-- 📦 **项目管理** — 项目状态流转、预算跟踪、收款记录
-- 📋 **任务看板** — TUI 看板视图、优先级、工时记录
-- 🤖 **AI 工具链** — Prompt 模板管理、多模型对话、快速提问
-- 🎨 **赛博朋克主题** — 24-bit 真彩色渐变 Logo、专业终端 UI
-- 💾 **本地 SQLite** — 零配置、数据完全本地、隐私安全
-
-## 📦 安装
+## 安装
 
 ```bash
-git clone https://github.com/Corps-Cy/nova.git
-cd nova
-npm install
+curl -fsSL https://raw.githubusercontent.com/Corps-Cy/nova/main/install.sh | bash
 ```
 
-## 🚀 使用
+## 快速开始
 
 ```bash
-# 开发模式
-npm run dev <command>
+# 1. 配置 API Key（用于 Embedding 和 LLM）
+nova config set embedding_api_key sk-your-key
+nova config set embedding_base_url https://api.openai.com/v1
 
-# 构建
-npm run build
+# 2. 创建知识库
+nova kb create "产品文档"
 
-# 运行（构建后）
-npm start <command>
+# 3. 上传文档
+nova kb upload README.md <kb_id>
+nova kb url https://example.com/docs <kb_id>
+
+# 4. 测试查询
+nova kb query <kb_id> "怎么安装？"
+
+# 5. 创建 API Key 并启动服务
+nova api create -n "生产环境"
+nova serve --port 3000
 ```
 
-运行 `nova` 不带参数显示渐变 Logo。
-
-## 📖 命令速查
-
-### 客户管理 `nova client` / `nova c`
-
-| 命令 | 说明 |
-|------|------|
-| `nova c add <name>` | 添加客户（`-c` 公司 `-t` 联系人 `-e` 邮箱） |
-| `nova c list` / `nova c ls` | 客户列表 |
-| `nova c edit <id>` | 编辑客户信息 |
-| `nova c rm <id>` | 删除客户 |
-
-### 项目管理 `nova project` / `nova p`
-
-| 命令 | 说明 |
-|------|------|
-| `nova p add <name> -C <clientId>` | 添加项目（`-b` 预算） |
-| `nova p list` | 项目列表 |
-| `nova p status <id> <status>` | 更新状态（requirement/development/review/delivered） |
-| `nova p pay <id> <amount>` | 记录收款 |
-
-### 任务管理 `nova task` / `nova t`
-
-| 命令 | 说明 |
-|------|------|
-| `nova t add <title>` | 添加任务（`-p` 优先级 `-P` 关联项目 `--due` 截止日期） |
-| `nova t list [-s status]` | 任务列表 |
-| `nova t board` / `nova t b` | 🎯 TUI 看板视图 |
-| `nova t status <id> <status>` | 更新状态（todo/doing/done） |
-| `nova t time <id> <hours>` | 记录工时 |
-| `nova t stats` | 任务统计 |
-
-### AI 工具链 `nova ai`
-
-| 命令 | 说明 |
-|------|------|
-| `nova ai prompt add <name>` | 添加 Prompt 模板（`-c` 分类 `--content` 或 `--file`） |
-| `nova ai prompt list` | 模板列表 |
-| `nova ai prompt show <id>` | 查看模板 |
-| `nova ai chat` | 💬 持续对话（`-m` 模型 `-s` 系统提示） |
-| `nova ai ask <message>` | 快速单次提问 |
-
-## ⚙️ 环境变量
+## API 使用
 
 ```bash
-# AI 功能（可选）
-export OPENAI_API_KEY=sk-...
-export OPENAI_BASE_URL=https://your-proxy.com/v1  # 自定义 API 地址
-export ANTHROPIC_API_KEY=sk-ant-...               # Claude 支持
+# 查询知识库
+curl -X POST http://localhost:3000/api/v1/query \
+  -H "Authorization: Bearer nova_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"kb_id": "xxx", "question": "如何退款？"}'
 ```
 
-## 🎨 主题
+## CLI 命令
 
-nova 使用赛博朋克风格主题色系统，支持 24-bit 真彩色渐变：
+| 命令 | 说明 |
+|------|------|
+| `nova kb create <name>` | 创建知识库 |
+| `nova kb ls` | 列出知识库 |
+| `nova kb upload <file> <kb_id>` | 上传文件 |
+| `nova kb url <url> <kb_id>` | 抓取网页 |
+| `nova kb text <kb_id>` | 从 stdin 导入文本 |
+| `nova kb query <kb_id> <question>` | 查询测试 |
+| `nova kb docs <kb_id>` | 列出文档 |
+| `nova api create` | 创建 API Key |
+| `nova api ls` | 列出 API Key |
+| `nova serve` | 启动 API 服务 |
+| `nova config set <key> <value>` | 设置配置 |
 
-| 角色 | 颜色 | 用途 |
-|------|------|------|
-| Primary | `#06b6d4` cyan | 品牌、标题、边框 |
-| Accent | `#f59e0b` amber | 辅助强调 |
-| Success | `#22c55e` green | 完成状态 |
-| Warning | `#eab308` yellow | 进行中 |
-| Error | `#ef4444` red | 错误、高优先级 |
+## 技术栈
 
-自定义主题：编辑 `src/ui/theme.ts`。
+- Node.js + TypeScript
+- SQLite + sqlite-vec（向量搜索）
+- Express（API 服务）
+- 支持多种 LLM：OpenAI / Anthropic / 智谱 / 通义千问
 
-## 🛠️ 技术栈
-
-- **Runtime**: Node.js ≥ 18
-- **Language**: TypeScript + JSX
-- **CLI Framework**: Commander.js
-- **TUI**: Ink (React for CLI)
-- **Database**: better-sqlite3
-- **Build**: tsup
-
-## 📂 项目结构
-
-```
-nova/
-├── src/
-│   ├── index.tsx              # 入口
-│   ├── commands/
-│   │   ├── index.ts           # 命令注册
-│   │   ├── client.tsx         # 客户管理
-│   │   ├── project.tsx        # 项目管理
-│   │   ├── task.tsx           # 任务管理
-│   │   └── ai.tsx             # AI 工具链
-│   ├── store/
-│   │   ├── index.ts           # 数据层导出
-│   │   ├── db.ts              # SQLite 初始化
-│   │   ├── client.ts          # 客户数据操作
-│   │   ├── project.ts         # 项目数据操作
-│   │   ├── task.ts            # 任务数据操作
-│   │   └── prompt.ts          # Prompt 模板操作
-│   └── ui/
-│       ├── index.ts           # UI 导出
-│       ├── components/
-│       │   ├── Header.tsx     # 标题组件
-│       │   ├── Input.tsx      # 终端输入
-│       │   ├── Logo.tsx       # 渐变 Logo
-│       │   ├── Select.tsx     # 键盘选择
-│       │   └── Table.tsx      # 表格
-│       ├── theme.ts           # 主题色系统
-│       └── utils.tsx          # 工具函数
-├── package.json
-├── tsconfig.json
-└── .gitignore
-```
-
-## 📄 License
+## License
 
 MIT

@@ -1,0 +1,63 @@
+#!/usr/bin/env node
+import { Command } from 'commander';
+import { registerKbCommand } from './commands/kb.js';
+import { registerApiCommand } from './commands/api.js';
+import { registerConfigCommand } from './commands/config.js';
+
+const VERSION = '2.0.0';
+
+const program = new Command();
+
+program
+  .name('nova')
+  .description('◆ nova — AI RAG Knowledge Base API Service')
+  .version(VERSION);
+
+// Default: show help
+program.action(() => {
+  console.log(`
+╔══════════════════════════════════════════╗
+║                                          ║
+║  ███  ████  ██  █                        ║
+║      N   O   V   A                      ║
+║  ━━━━━━━━━━ ◆ ━━━━━━━━━━                  ║
+║    knowledge base api v2.0                ║
+║                                          ║
+╚══════════════════════════════════════════╝
+
+  AI RAG 知识库 API 服务
+
+  快速开始:
+    nova config set embedding_api_key <your-key>
+    nova kb create "我的知识库"
+    nova kb upload README.md <kb_id>
+    nova kb query <kb_id> "这个问题是什么意思？"
+    nova serve
+
+  API 服务:
+    nova api create -n "生产环境"
+    nova serve --port 3000
+`);
+});
+
+// Register commands
+registerKbCommand(program);
+registerApiCommand(program);
+registerConfigCommand(program);
+
+// Serve command
+program.command('serve')
+  .description('启动 API 服务')
+  .option('-p, --port <port>', '端口', '3000')
+  .option('-h, --host <host>', '主机', '0.0.0.0')
+  .action(async (opts) => {
+    const { createApiServer } = await import('./api/server.js');
+    const app = createApiServer();
+    app.listen(parseInt(opts.port), opts.host, () => {
+      console.log(`\n🚀 nova API 服务已启动`);
+      console.log(`   http://${opts.host}:${opts.port}`);
+      console.log(`   健康检查: http://localhost:${opts.port}/health\n`);
+    });
+  });
+
+program.parse();
